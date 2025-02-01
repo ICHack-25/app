@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, request, jsonify, send_file
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
@@ -88,7 +90,7 @@ def download_file(filename):
 @app.route("/dbtest")
 def DBTest():
     users = list(users_collection.find({}))
-    return {"users":users}
+    return json.dumps({"users":users}, default=str)
 
 '''
 run with powershell cmd: Invoke-WebRequest -Uri "http://127.0.0.1:5000/users" -Method POST -Body '{"username": "john_doe", "email": "john@example.com", "password_hash": "hashed_password"}' -ContentType "application/json"
