@@ -20,6 +20,10 @@ class ClassificationResult(BaseModel):
     prompt: str
     reviewed_by: Optional[str] = Field(None, alias="user_id")  # Referencing User ID
 
+class RAGKnowledgeBase(BaseModel):
+    id: Optional[str] = Field(None, alias="_id")
+    data: str
+
 class Uploads(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     url: Optional[HttpUrl] = None

@@ -1,4 +1,6 @@
-from flask import Flask, json, request, jsonify, send_file
+import json
+from functools import wraps
+from flask import Flask, request, jsonify, send_file, abort
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from models import *
@@ -7,6 +9,7 @@ from datetime import datetime
 import gridfs
 import io
 from bson import ObjectId
+from confluent_kafka import Producer
 
 
 app = Flask(__name__)
@@ -25,8 +28,23 @@ except Exception as e:
 db = client["db"]
 
 users_collection = db["users"]
-# uploads_collection = db["uploads"]
-# classification_results_collection = db["collection_results"]
+uploads_collection = db["uploads"]
+classification_results_collection = db["collection_results"]
+text_analysis_collection = db["text_analysis"]
+url_analysis_collection = db["url_analysis"]
+feedback_collection = db["feedback"]
+api_keys_collection = db["api_keys"]
+rag_knowledge_base_collection = db["rag_knowledge_base"]
+
+confluent_config = {
+    'bootstrap.servers':'pkc-619z3.us-east1.gcp.confluent.cloud:9092',
+    'security.protocol':'SASL_SSL',
+    'sasl.mechanisms':'PLAIN',
+    'sasl.username':'3N4YVM73XOUBVCEP',
+    'sasl.password':'/LEZpcAf1SkGqYRN0jx1ekMHB74MVCArS2DnbnxCQ/Rdkgw1P9s7qMj1+3XFKlZJ'
+    # Optional: You can set additional configs such as message timeout or logging
+}
+producer = Producer(confluent_config)
 
 fs = gridfs.GridFS(db)
 
@@ -34,6 +52,66 @@ class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password_hash: str
+
+def delivery_report(err, msg):
+    """Called once for each message produced to indicate delivery result.
+       Triggered by poll() or flush()."""
+    if err is not None:
+        print('Message delivery failed: {}'.format(err))
+    else:
+        print('Message delivered to {} [{}]'.format(msg.topic(), msg.partition()))
+
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # Get the API key from the request header
+        api_key = request.headers.get('X-API-Key')
+        if not api_key:
+            abort(401, description="API key required")
+        
+        # Validate the API key in MongoDB
+        key_doc = api_keys_collection.find_one({"key": api_key, "active": True})
+        if not key_doc:
+            abort(403, description="Invalid or inactive API key")
+        
+        # If you want to attach user info to the request context, you can do so here.
+        return f(*args, **kwargs)
+    return decorated
+
+
+'''
+command to test:
+
+$headers = @{
+    "Content-Type" = "application/json"
+    "X-API-Key"    = "testkey123"
+}
+
+$body = '{"message": "Hello from Flask to Confluent Cloud!"}'
+
+Invoke-RestMethod -Uri "http://localhost:5000/protected-endpoint" -Method Post -Headers $headers -Body $body
+
+'''
+@app.route('/protected-endpoint', methods=['POST'])
+@require_api_key
+def protected_endpoint():
+    data = request.get_json()
+    if data is None:
+        return jsonify({"error": "Invalid JSON data"}), 400
+
+    topic_name = 'topic_0'  # Ensure this topic exists in your Confluent Cloud cluster
+    
+    try:
+        # Produce a message. Note: This is asynchronous.
+        producer.produce(topic=topic_name, value=json.dumps(data), callback=delivery_report)
+        # Poll for delivery reports (optional here, but recommended to flush periodically)
+        producer.poll(0)
+        # Optionally, flush the producer to ensure message delivery (synchronous)
+        producer.flush()
+    except Exception as e:
+        return jsonify({"error": f"Failed to send message to Kafka: {str(e)}"}), 500
+
+    return jsonify({"message": "Request processed and data sent to Kafka"}), 200
 
 @app.route("/fileupload")
 def FileUpload():
@@ -88,7 +166,7 @@ def download_file(filename):
 @app.route("/dbtest")
 def DBTest():
     users = list(users_collection.find({}))
-    
+    return json.dumps({"users":users}, default=str)
 
 '''
 run with powershell cmd: Invoke-WebRequest -Uri "http://127.0.0.1:5000/users" -Method POST -Body '{"username": "john_doe", "email": "john@example.com", "password_hash": "hashed_password"}' -ContentType "application/json"
@@ -114,6 +192,16 @@ def AddUser():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route("/rag-add", methods=['POST'])
+def RAGAdd():
+    if request.method == "POST":
+        user_query = request.args.get('user_query')
+
+
+    return "no get method given"
+
+    
 
 @app.route('/')
 def hello_world():  # put application's code here
