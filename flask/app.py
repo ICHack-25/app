@@ -1,12 +1,20 @@
 from flask import Flask
 from pymongo import MongoClient
 
+uri = "mongodb+srv://nicholasmasonapps1:A2qZ34cttzqqrwck@cluster0.spui9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+client = MongoClient(uri)
+
+db = client["db"]
+
+users_collection = db["users"]
+
 app = Flask(__name__)
-client = MongoClient(host="mongodb://ichack25mongo.containers.uwcs.co.uk/", port=27017, username='admin', password='password', authSource="admin")
 
 @app.route("/dbtest")
 def DBTest():
-    return client.admin.command('ping')
+    users = list(users_collection.find({}))
+    return {"users":users}
 
 @app.route('/')
 def hello_world():  # put application's code here
