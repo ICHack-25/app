@@ -211,7 +211,7 @@ def RAGAdd():
             "time_published": rag_data.time_published
         }
         result = rag_knowledge_base_collection.insert_one(new_rag)
-        return jsonify({"message": "Data added successfully", "data_id": str(result.inserted_id)}), 201
+        return jsonify({"message": "Data added successfull", "data_id": str(result.inserted_id)}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 400
     
