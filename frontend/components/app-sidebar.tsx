@@ -33,6 +33,7 @@ import {
 
 // The reusable row we created
 import { ItemRow } from "./ItemRow"
+import Link from "next/link"
 
 // Example initial data
 const INITIAL_ITEMS = [
@@ -101,7 +102,11 @@ export function AppSidebar({ onSelectItem, ...props }: AppSidebarProps) {
       {/* Sidebar Header (Create Button) */}
       <SidebarHeader>
         <div className="flex items-center justify-between p-4">
-          <span className="font-bold">Previous Investigations</span>
+          <span className="font-bold">
+            <Link href={"/"}>
+            RAGGuard
+            </Link>
+          </span>
           <button
             onClick={handleCreateItem}
             className="flex items-center gap-1 p-1"
