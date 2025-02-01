@@ -32,11 +32,11 @@ const plans: PlanProps[] = [
       "Lorem ipsum dolor sit, amet ipsum consectetur adipisicing elit.",
     buttonText: "Start Free Trial",
     benefitList: [
-      "1 team member",
-      "1 GB storage",
-      "Upto 2 pages",
-      "Community support",
-      "AI assistance",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
     ],
   },
   {
@@ -47,11 +47,11 @@ const plans: PlanProps[] = [
       "Lorem ipsum dolor sit, amet ipsum consectetur adipisicing elit.",
     buttonText: "Get starterd",
     benefitList: [
-      "4 team member",
-      "8 GB storage",
-      "Upto 6 pages",
-      "Priority support",
-      "AI assistance",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
     ],
   },
   {
@@ -62,11 +62,11 @@ const plans: PlanProps[] = [
       "Lorem ipsum dolor sit, amet ipsum consectetur adipisicing elit.",
     buttonText: "Contact US",
     benefitList: [
-      "10 team member",
-      "20 GB storage",
-      "Upto 10 pages",
-      "Phone & email support",
-      "AI assistance",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
+      "Lorem ipsum",
     ],
   },
 ];
@@ -79,7 +79,7 @@ export const PricingSection = () => {
       </h2>
 
       <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-        Get unlimitted access
+        Get unlimited access
       </h2>
 
       <h3 className="md:w-1/2 mx-auto text-xl text-center text-muted-foreground pb-14">
