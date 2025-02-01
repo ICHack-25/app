@@ -193,15 +193,50 @@ def AddUser():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+class RAGKnowledgeBaseCreate(BaseModel):
+    data: str
+    embeddings: List[float]
+    source: str
+    time_published: datetime
+
 @app.route("/rag-add", methods=['POST'])
 def RAGAdd():     
-    data=request.form.get('data')
-    embeddings=request.form.get('embeddings')
-    source=request.form.get('source')
-    time=request.form.get('time_published')
+    try:
+        rag_data = RAGKnowledgeBaseCreate(**request.json)
 
-    return "no get method given"
+        new_rag = {
+            "data": rag_data.data,
+            "embeddings": rag_data.embeddings,
+            "source": rag_data.source,
+            "time_published": rag_data.time_published
+        }
+        result = rag_knowledge_base_collection.insert_one(new_rag)
+        return jsonify({"message": "Data added successfully", "data_id": str(result.inserted_id)}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    
+@app.route("/rag-clear")
+def RAGClear():
+    try:
+        rag_knowledge_base_collection.drop()
+        return jsonify({"message": "Dropped all RAG entries"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
+@app.route("/rag-delete", methods=['POST'])
+def RAGDelete():
+    try:
+        rag_data = RAGKnowledgeBaseCreate(**request.json)
+
+        result = rag_knowledge_base_collection.delete_one({
+            "data": rag_data.data,
+            "embeddings": rag_data.embeddings,
+            "source": rag_data.source,
+            "time_published": rag_data.time_published
+        })
+        return jsonify({"message": "Delete successfull", "num_deleted": str(result.deleted_count)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
     
 
 @app.route('/')
