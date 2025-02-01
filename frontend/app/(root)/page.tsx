@@ -58,11 +58,8 @@ export const metadata = {
   },
 };
 
-const Home = () => {
+export default function Home()  {
     const { data: session} = useSession();
-
-
-
 
     return (
     <>
