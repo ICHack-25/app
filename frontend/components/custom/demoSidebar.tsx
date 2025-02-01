@@ -3,6 +3,7 @@ import React from "react"
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "../ui/sidebar"
 import { AppSidebar } from "../app-sidebar"
 
+// Mocked chat data keyed by chat ID:
 const mockChatData: Record<number, Array<{ user: string; message: string }>> = {
   1: [
     { user: "system", message: "Doc #1: Preliminary classification details." },
@@ -31,20 +32,28 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
   // Parameters
   const [temperature, setTemperature] = React.useState(0.7)
   const [maxTokens, setMaxTokens] = React.useState(1000)
+  const [isFileMode, setIsFileMode] = React.useState(true)
+  const [fileValue, setFileValue] = React.useState<File | null>(null)
+  const [linkValue, setLinkValue] = React.useState("")
 
   // Load the chat data when we pick a different chat
   React.useEffect(() => {
-    if (selectedId != null) {
+    if (selectedId !== null) {
       setChatMessages(mockChatData[selectedId] || [])
     }
   }, [selectedId])
 
-  function handleSubmitParameters() {
-    console.log("Submitting parameters to LLM/Claude:")
+  /** Called when user submits the form. */
+  function handleParameterForm(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    // For now, just log the states. Replace with your real logic or an API call.
+    console.log("Form submitted with:")
+    console.log("  Selected chat ID:", selectedId)
     console.log("  Temperature:", temperature)
-    console.log("  Max tokens:", maxTokens)
-    console.log("Selected chat ID:", selectedId)
-    // e.g. axios.post("/api/claude", { selectedId, temperature, maxTokens, topP })
+    console.log("  Max Tokens:", maxTokens)
+    console.log("  isFileMode:", isFileMode)
+    console.log("  fileValue:", fileValue)
+    console.log("  linkValue:", linkValue)
   }
 
   return (
@@ -60,30 +69,55 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
         </header>
 
         <main className="p-4 space-y-6">
-          <div>
-            {selectedId ? (
-              <ChatWindow messages={chatMessages} />
-            ) : (
-              <p>No item selected. Click one in the sidebar!</p>
-            )}
-          </div>
+          {selectedId ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {/* Left column: The Chat */}
+              <div>
+                <ChatWindow messages={chatMessages} />
+              </div>
 
-          {/* Parameter Row (like a chat input bar) */}
-          <div className="max-w-2xl">
-            <LLMParameterInputs
-              temperature={temperature}
-              setTemperature={setTemperature}
-              maxTokens={maxTokens}
-              setMaxTokens={setMaxTokens}
-              onSubmit={handleSubmitParameters}
-            />
-          </div>
+              {/* Right column: A "card" that could display a graph or other info */}
+              <div className="border rounded-md p-4 shadow">
+                <h2 className="text-lg font-semibold mb-2">Files / Graph</h2>
+                {/* 
+                  TODO: Insert your Graph component here, for instance:
+                  <MyGraph filesUsed={...} />
+                */}
+                <p className="text-sm text-gray-500">
+                  This is where you might display a graph or data
+                  about the uploaded file(s).
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p>No item selected. Click one in the sidebar!</p>
+          )}
+
+          {/* Only show the parameter row if we have a selection */}
+          {selectedId !== null && (
+            <div className="max-w-2xl">
+              <ParameterForm
+                temperature={temperature}
+                setTemperature={setTemperature}
+                maxTokens={maxTokens}
+                setMaxTokens={setMaxTokens}
+                isFileMode={isFileMode}
+                setIsFileMode={setIsFileMode}
+                fileValue={fileValue}
+                setFileValue={setFileValue}
+                linkValue={linkValue}
+                setLinkValue={setLinkValue}
+                onSubmit={handleParameterForm}
+              />
+            </div>
+          )}
         </main>
       </SidebarInset>
     </SidebarProvider>
   )
 }
 
+/** Displays the selected chat's messages in bubble form. */
 function ChatWindow({
   messages,
 }: {
@@ -110,24 +144,44 @@ function ChatWindow({
   )
 }
 
-/** A row with 3 parameter inputs + Submit button, each input labeled *below* the field. */
-function LLMParameterInputs({
-  temperature,
-  setTemperature,
-  maxTokens,
-  setMaxTokens,
-
-  onSubmit,
-}: {
+type ParameterFormProps = {
   temperature: number
   setTemperature: (val: number) => void
   maxTokens: number
   setMaxTokens: (val: number) => void
-  onSubmit: () => void
-}) {
+  isFileMode: boolean
+  setIsFileMode: (val: boolean) => void
+  fileValue: File | null
+  setFileValue: (val: File | null) => void
+  linkValue: string
+  setLinkValue: (val: string) => void
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
+}
+
+/**
+ * A fixed bar at the bottom with a toggle for file/link,
+ * plus temperature + maxTokens, and a Submit button.
+ * Wrapped in a <form> that calls onSubmit.
+ */
+function ParameterForm({
+  temperature,
+  setTemperature,
+  maxTokens,
+  setMaxTokens,
+  isFileMode,
+  setIsFileMode,
+  fileValue,
+  setFileValue,
+  linkValue,
+  setLinkValue,
+  onSubmit,
+}: ParameterFormProps) {
   return (
-    <div className="flex items-end gap-4 rounded-md border border-gray-700 bg-gray-900 p-3 fixed 
-             bottom-5 ">
+    <form
+      onSubmit={onSubmit}
+      className="flex items-end gap-4 rounded-md border border-gray-700 bg-gray-900 
+                 p-3 fixed bottom-5 max-w-4xl"
+    >
       {/* Temperature Input */}
       <div className="flex flex-col items-center">
         <input
@@ -163,14 +217,61 @@ function LLMParameterInputs({
         <label className="mt-1 text-xs text-gray-400">Max Tokens</label>
       </div>
 
+      {/* Toggle: File or Link */}
+      <div className="flex flex-col items-center">
+        <input
+          type="checkbox"
+          checked={isFileMode}
+          onChange={(e) => setIsFileMode(e.target.checked)}
+          className="h-4 w-4 rounded-sm border-gray-600 bg-gray-800 
+                     text-blue-600 focus:outline-none"
+        />
+        <label className="mt-1 text-xs text-gray-400">
+          {isFileMode ? "File Mode" : "Link Mode"}
+        </label>
+      </div>
+
+      {/* Conditionally show file input or link input */}
+      {isFileMode ? (
+        <div className="flex flex-col items-center">
+          <input
+            type="file"
+            onChange={(e) => {
+              if (e.target.files?.[0]) {
+                setFileValue(e.target.files[0])
+              }
+            }}
+            className="w-32 text-sm text-gray-100
+                       file:mr-2 file:rounded-md file:border-0 file:bg-gray-700 
+                       file:px-2 file:py-1 file:text-sm file:text-gray-100 
+                       hover:file:bg-gray-600"
+          />
+          <label className="mt-1 text-xs text-gray-400">Upload File</label>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center">
+          <input
+            type="text"
+            placeholder="https://example.com"
+            value={linkValue}
+            onChange={(e) => setLinkValue(e.target.value)}
+            className="w-36 rounded-md bg-transparent px-2 py-1 text-sm text-gray-100 
+                       placeholder-gray-400 ring-0 focus:outline-none 
+                       border border-transparent focus:border-gray-600
+                       text-center"
+          />
+          <label className="mt-1 text-xs text-gray-400">Link</label>
+        </div>
+      )}
+
       {/* Submit Button */}
       <button
-        onClick={onSubmit}
+        type="submit"
         className="ml-auto rounded-md bg-blue-600 px-4 py-1 text-sm text-white 
                    hover:bg-blue-700 focus:outline-none"
       >
         Submit
       </button>
-    </div>
+    </form>
   )
 }

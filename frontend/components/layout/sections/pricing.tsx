@@ -45,7 +45,7 @@ const plans: PlanProps[] = [
     price: 45,
     description:
       "Lorem ipsum dolor sit, amet ipsum consectetur adipisicing elit.",
-    buttonText: "Get starterd",
+    buttonText: "Get started",
     benefitList: [
       "Lorem ipsum",
       "Lorem ipsum",
