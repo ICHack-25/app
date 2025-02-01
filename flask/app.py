@@ -194,10 +194,11 @@ def AddUser():
         return jsonify({"error": str(e)}), 400
 
 @app.route("/rag-add", methods=['POST'])
-def RAGAdd():
-    if request.method == "POST":
-        user_query = request.args.get('user_query')
-
+def RAGAdd():     
+    data=request.form.get('data')
+    embeddings=request.form.get('embeddings')
+    source=request.form.get('source')
+    time=request.form.get('time_published')
 
     return "no get method given"
 
