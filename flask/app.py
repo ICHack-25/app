@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, json, request, jsonify, send_file
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from models import *
@@ -25,7 +25,7 @@ except Exception as e:
 db = client["db"]
 
 users_collection = db["users"]
-uploads_collection = db["uploads"]
+# uploads_collection = db["uploads"]
 # classification_results_collection = db["collection_results"]
 
 fs = gridfs.GridFS(db)
@@ -88,7 +88,7 @@ def download_file(filename):
 @app.route("/dbtest")
 def DBTest():
     users = list(users_collection.find({}))
-    return {"users":users}
+    
 
 '''
 run with powershell cmd: Invoke-WebRequest -Uri "http://127.0.0.1:5000/users" -Method POST -Body '{"username": "john_doe", "email": "john@example.com", "password_hash": "hashed_password"}' -ContentType "application/json"

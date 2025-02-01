@@ -21,6 +21,7 @@ class ClassificationResult(BaseModel):
     reviewed_by: Optional[str] = Field(None, alias="user_id")  # Referencing User ID
 
 class Uploads(BaseModel):
+    id: Optional[str] = Field(None, alias="_id")
     url: Optional[HttpUrl] = None
     image_id: Optional[str] = None  # Reference to GridFS file _id
     text: Optional[str] = None
