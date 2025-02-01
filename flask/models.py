@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -17,16 +17,21 @@ class ClassificationResult(BaseModel):
     model_version: str
     classified_at: datetime = Field(default_factory=datetime.utcnow)
     additional_info: Optional[str] = None
+    prompt: str
     reviewed_by: Optional[str] = Field(None, alias="user_id")  # Referencing User ID
 
-class File(BaseModel):
-    id: Optional[str] = Field(None, alias="_id")
-    user: str  # User ID as a string
-    file_name: str
-    file_type: str
-    file_path: str
-    upload_time: datetime = Field(default_factory=datetime.utcnow)
-    classification_result: Optional[str] = Field(None, alias="classification_result_id")  # Reference to ClassificationResult ID
+class Uploads(BaseModel):
+    url: Optional[HttpUrl] = None
+    image_id: Optional[str] = None  # Reference to GridFS file _id
+    text: Optional[str] = None
+    user: str = Field(default="test")
+
+    @field_validator("url", "image_id", "text", mode="before")
+    @classmethod
+    def at_least_one(cls, v, values):
+        if not any([values.get("url"), values.get("image_id"), values.get("text")]):
+            raise ValueError("At least one of url, image, or text must be provided.")
+        return v
 
 class TextAnalysis(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
