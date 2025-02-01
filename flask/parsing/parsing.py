@@ -232,80 +232,80 @@ def moderate_message(message, misinformationCategories):
 
 
 
-# class DataObject():
-#     def __init__(self, data, relevance, datatype, timestamp, source) -> None:
-#         self.data = data # stored data, such as "Trump was elected twice", or "this image depicts a chirstma"
-#         self.relevance = relevance
-#         self.datatype = datatype
-#         self.timestamp = timestamp
-#         self.source = source
-
-
-# class VectorStore:
-#     def __init__(self, initial_data):
-#         self.documents = [initial_data]
-#             # {"text": "Donald Trump was NOT elected president of Ukraine.", "embedding": [0.1, 0.2]},
-#             # {"text": "Ukraine's current president is Volodymyr Zelenskyy.", "embedding": [0.3, 0.4]},
-#             # {"text": "AI-generated misinformation is becoming a major problem.", "embedding": [0.5, 0.6]},
-
-#     async def similarity_search(self, query_embedding, top_k=5):
-#         """Returns documents that 'match' the query (mock similarity search)"""
-#         return self.documents[:top_k]
-    
-#     def add_entry(self, text, embedding):
-#         """Adds a new document with its embedding to the store."""
-#         dataObject = DataObject(text, )
-#         self.documents.append({"text": text, "embedding": embedding})
-
-
-
-
-class DataObject:
-    def __init__(self, data, relevance, datatype, timestamp, source, embedding=None):
-        self.data = data  # Stored text/image description
-        self.relevance = relevance  # Relevance score (if applicable)
-        self.datatype = datatype  # Type of data (text, image, etc.)
-        self.timestamp = timestamp  # When the data was added
-        self.source = source  # Source of data (URL, user input, etc.)
-        self.embedding = embedding or []  # Embedding representation
-
-    def compute_embedding(self, llm):
-        """Generates an embedding for the data using the LLM."""
-        loop = asyncio.get_event_loop()
-        embedding_text = loop.run_until_complete(llm.generate(f"Generate an embedding vector for: {self.data}"))
-        self.embedding = np.array([float(x) for x in embedding_text.split()])
-
-    def cosine_similarity(self, other_embedding):
-        """Computes the cosine similarity between this object and another embedding."""
-        if not self.embedding or not other_embedding:
-            return 0.0
-        
-        dot_product = np.dot(self.embedding, other_embedding)
-        norm_a = np.linalg.norm(self.embedding)
-        norm_b = np.linalg.norm(other_embedding)
-        return dot_product / (norm_a * norm_b + 1e-10)  # Avoid division by zero
+class DataObject():
+    def __init__(self, data, relevance, datatype, timestamp, source) -> None:
+        self.data = data # stored data, such as "Trump was elected twice", or "this image depicts a chirstma"
+        self.relevance = relevance
+        self.datatype = datatype
+        self.timestamp = timestamp
+        self.source = source
 
 
 class VectorStore:
-    def __init__(self):
-        self.documents = []
+    def __init__(self, initial_data):
+        self.documents = [initial_data]
+            # {"text": "Donald Trump was NOT elected president of Ukraine.", "embedding": [0.1, 0.2]},
+            # {"text": "Ukraine's current president is Volodymyr Zelenskyy.", "embedding": [0.3, 0.4]},
+            # {"text": "AI-generated misinformation is becoming a major problem.", "embedding": [0.5, 0.6]},
 
-    async def similarity_search(self, query_text, llm, top_k=5):
-        """Finds the top-k most similar stored documents to the query."""
-        query_embedding_text = await llm.generate(f"Generate an embedding vector for: {query_text}")
-        query_embedding = np.array([float(x) for x in query_embedding_text.split()])
+    async def similarity_search(self, query_embedding, top_k=5):
+        """Returns documents that 'match' the query (mock similarity search)"""
+        return self.documents[:top_k]
+    
+    def add_entry(self, text, embedding):
+        """Adds a new document with its embedding to the store."""
+        dataObject = DataObject(text, )
+        self.documents.append({"text": text, "embedding": embedding})
 
-        # Compute similarities
-        similarities = [(doc, doc.cosine_similarity(query_embedding)) for doc in self.documents]
-        similarities.sort(key=lambda x: x[1], reverse=True)  # Sort by highest similarity
+
+
+
+# class DataObject:
+#     def __init__(self, data, relevance, datatype, timestamp, source, embedding=None):
+#         self.data = data  # Stored text/image description
+#         self.relevance = relevance  # Relevance score (if applicable)
+#         self.datatype = datatype  # Type of data (text, image, etc.)
+#         self.timestamp = timestamp  # When the data was added
+#         self.source = source  # Source of data (URL, user input, etc.)
+#         self.embedding = embedding or []  # Embedding representation
+
+#     def compute_embedding(self, llm):
+#         """Generates an embedding for the data using the LLM."""
+#         loop = asyncio.get_event_loop()
+#         embedding_text = loop.run_until_complete(llm.generate(f"Generate an embedding vector for: {self.data}"))
+#         self.embedding = np.array([float(x) for x in embedding_text.split()])
+
+#     def cosine_similarity(self, other_embedding):
+#         """Computes the cosine similarity between this object and another embedding."""
+#         if not self.embedding or not other_embedding:
+#             return 0.0
         
-        return [doc for doc, score in similarities[:top_k]]
+#         dot_product = np.dot(self.embedding, other_embedding)
+#         norm_a = np.linalg.norm(self.embedding)
+#         norm_b = np.linalg.norm(other_embedding)
+#         return dot_product / (norm_a * norm_b + 1e-10)  # Avoid division by zero
 
-    def add_entry(self, text, llm, relevance=1.0, datatype="text", timestamp=None, source="unknown"):
-        """Adds a new document to the store after computing its embedding."""
-        data_object = DataObject(text, relevance, datatype, timestamp, source)
-        data_object.compute_embedding(llm)
-        self.documents.append(data_object)
+
+# class VectorStore:
+#     def __init__(self, ):
+#         self.documents = []
+
+#     async def similarity_search(self, query_text, llm, top_k=5):
+#         """Finds the top-k most similar stored documents to the query."""
+#         query_embedding_text = await llm.generate(f"Generate an embedding vector for: {query_text}")
+#         query_embedding = np.array([float(x) for x in query_embedding_text.split()])
+
+#         # Compute similarities
+#         similarities = [(doc, doc.cosine_similarity(query_embedding)) for doc in self.documents]
+#         similarities.sort(key=lambda x: x[1], reverse=True)  # Sort by highest similarity
+        
+#         return [doc for doc, score in similarities[:top_k]]
+
+#     def add_entry(self, text, llm, relevance=1.0, datatype="text", timestamp=None, source="unknown"):
+#         """Adds a new document to the store after computing its embedding."""
+#         data_object = DataObject(text, relevance, datatype, timestamp, source)
+#         data_object.compute_embedding(llm)
+#         self.documents.append(data_object)
 
 
 
