@@ -5,6 +5,7 @@ import base64
 import httpx
 from dotenv import load_dotenv
 import json
+from typing import List, Dict
 
 # image1_url = "https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg"
 # image1_media_type = "image/jpeg"
@@ -21,6 +22,40 @@ def anthropicClientSetup():
     else:
         client = anthropic.Anthropic() # init the client NOTE need to load the .env file with api key
         return client
+
+# Anthropic LLM
+class LLM:
+    def __init__(self):
+        self.client = anthropicClientSetup()
+
+    async def generate(self, prompt, system=None):
+        """Use Anthropic to generate text based on a given prompt"""
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=1000,
+            temperature=0,
+            system=system,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": prompt
+                        }
+                    ]
+                }
+            ]
+        )
+        return message.content[0].text
+    
+
+    def getMisinformationCategories():
+        """List of categories considered unreliable for content moderation"""
+        with open(nameToPath("misinformationCategories.txt")) as f:
+            return [line.strip() for line in f.readlines()]
+
+
 
 def encode(data):
     """returns base64 encoding of a file for anthropic vision API"""
@@ -122,13 +157,11 @@ def moderate_message(message, misinformationCategories):
     
     return contains_violation, violated_categories, explanation
 
-def getMisinformationCategories():
-    """List of categories considered unreliable for content moderation"""
-    with open(nameToPath("misinformationCategories.txt")) as f:
-        return [line.strip() for line in f.readlines()]
+
 
 if __name__ == "__main__":
     client = anthropicClientSetup()
+    client = LLM()
 
     # File you're cursing parsing, can be local path or web
     # filePath = "https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg"
@@ -150,7 +183,206 @@ if __name__ == "__main__":
 
 
     misinformationCategories = getMisinformationCategories()
-    print(moderate_message(message, misinformationCategories)) 
+    # print(moderate_message(message, misinformationCategories)) 
+
+
+
+
+
+
+
+
+
+# class RecursiveRetrievalModule:
+#     def __init__(self, vector_store, keyword_search, llm):
+#         self.vector_store = vector_store
+#         self.keyword_search = keyword_search
+#         self.llm = llm
+
+#     async def iterative_retrieve(self, initial_query: str, max_steps: int = 5) -> List[Dict]:
+#         context = ""
+#         query = initial_query
+#         retrieved_documents = []
+
+#         for step in range(max_steps):
+#             # Retrieve documents based on the current query and context
+#             combined_query = f"{query}\nContext: {context}"
+#             docs = await self.vector_store.similarity_search(self._embed(combined_query), top_k=10)
+#             retrieved_documents.extend(docs)
+
+#             # Generate sub-questions or refine context using LLM
+#             sub_questions = await self._generate_sub_questions(docs, context)
+
+#             if not sub_questions:
+#                 break
+
+#             # Update context and prepare for next iteration
+#             context += " " + " ".join(sub_questions)
+#             query = " ".join(sub_questions)
+
+#         return retrieved_documents
+
+#     async def _generate_sub_questions(self, docs: List[Dict], context: str) -> List[str]:
+#         prompt = f"Based on the following documents and context, generate a list of sub-questions to further explore the topic:\nDocuments: {docs}\nContext: {context}"
+#         response = await self.llm.generate(prompt)
+#         return self._parse_sub_questions(response)
+
+
+# class RecursiveReasoningModule:
+#     async def process_documents(self, retrieved_docs: List[Dict], initial_query: str) -> Dict:
+#         # Synthesize information from all documents
+#         synthesized_info = self._synthesize(retrieved_docs, initial_query)
+        
+#         # Apply domain-specific logic or constraints
+#         refined_insights = self._apply_domain_logic(synthesized_info)
+        
+#         return {"insights": refined_insights}
+
+# class RecursiveGenerationModule:
+#     async def generate_final_answer(self, reasoning_output: Dict, initial_query: str) -> str:
+#         prompt = self._build_final_prompt(reasoning_output["insights"], initial_query)
+#         final_answer = await self.llm.generate(prompt, parameters={"max_length": 1500})
+#         return final_answer
+
+
+
+
+
+
+
+
+
+
+
+
+import asyncio
+
+# Mock Vector Store
+class MockVectorStore:
+    def __init__(self):
+        self.documents = [
+            {"text": "Donald Trump was NOT elected president of Ukraine.", "embedding": [0.1, 0.2]},
+            {"text": "Ukraine's current president is Volodymyr Zelenskyy.", "embedding": [0.3, 0.4]},
+            {"text": "AI-generated misinformation is becoming a major problem.", "embedding": [0.5, 0.6]},
+        ]
+
+    async def similarity_search(self, query_embedding, top_k=5):
+        """Returns documents that 'match' the query (mock similarity search)"""
+        return self.documents[:top_k]
+
+
+
+
+
+
+
+
+
+# Recursive Retrieval Module
+class RecursiveRetrievalModule:
+    def __init__(self, vector_store, llm):
+        self.vector_store = vector_store
+        self.llm = llm
+
+    async def iterative_retrieve(self, initial_query: str, max_steps: int = 3) -> List[Dict]:
+        context = ""
+        query = initial_query
+        retrieved_documents = []
+
+        for _ in range(max_steps):
+            docs = await self.vector_store.similarity_search(query, top_k=3)
+            retrieved_documents.extend(docs)
+
+            # Generate sub-questions (mocked)
+            sub_questions = await self.llm.generate("Generate sub-questions for: " + query)
+            if not sub_questions:
+                break
+
+            query = " ".join(sub_questions)
+
+        return retrieved_documents
+
+# Recursive Reasoning Module
+class RecursiveReasoningModule:
+    async def process_documents(self, retrieved_docs: List[Dict], initial_query: str) -> Dict:
+        insights = await LLM().generate("Synthesize insights from: " + str(retrieved_docs))
+        return {"insights": insights}
+
+# Recursive Generation Module
+class RecursiveGenerationModule:
+    async def generate_final_answer(self, reasoning_output: Dict, initial_query: str) -> str:
+        prompt = f"Final synthesis of insights: {reasoning_output['insights']} for query: {initial_query}"
+        return await LLM().generate(prompt)
+
+# Test Function
+async def test_recursive_misinformation_pipeline():
+    vector_store = MockVectorStore()
+    llm = LLM()
+
+    retrieval_module = RecursiveRetrievalModule(vector_store, llm)
+    reasoning_module = RecursiveReasoningModule()
+    generation_module = RecursiveGenerationModule()
+
+    initial_query = "Donald Trump is president of Ukraine"
+    
+    print("\n[STEP 1] Retrieving Documents...")
+    retrieved_docs = await retrieval_module.iterative_retrieve(initial_query)
+    print("Retrieved Docs:", retrieved_docs)
+
+    print("\n[STEP 2] Processing Documents...")
+    reasoning_output = await reasoning_module.process_documents(retrieved_docs, initial_query)
+    print("Reasoning Output:", reasoning_output)
+
+    print("\n[STEP 3] Generating Final Answer...")
+    final_answer = await generation_module.generate_final_answer(reasoning_output, initial_query)
+    print("Final Answer:", final_answer)
+
+# Run the test
+asyncio.run(test_recursive_misinformation_pipeline())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
