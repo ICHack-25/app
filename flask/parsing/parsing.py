@@ -6,6 +6,8 @@ import httpx
 from dotenv import load_dotenv
 import json
 from typing import List, Dict
+import asyncio
+import numpy as np
 
 # image1_url = "https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg"
 # image1_media_type = "image/jpeg"
@@ -28,7 +30,7 @@ class LLM:
     def __init__(self):
         self.client = anthropicClientSetup()
 
-    async def generate(self, prompt, system=None):
+    async def generate(self, prompt, system="analyse this request thoroughly"):
         """Use Anthropic to generate text based on a given prompt"""
         message = client.messages.create(
             model="claude-3-5-sonnet-20241022",
@@ -50,10 +52,10 @@ class LLM:
         return message.content[0].text
     
 
-    def getMisinformationCategories():
-        """List of categories considered unreliable for content moderation"""
-        with open(nameToPath("misinformationCategories.txt")) as f:
-            return [line.strip() for line in f.readlines()]
+def getMisinformationCategories():
+    """List of categories considered unreliable for content moderation"""
+    with open(nameToPath("misinformationCategories.txt")) as f:
+        return [line.strip() for line in f.readlines()]
 
 
 
@@ -109,7 +111,7 @@ def imageToText(fileType, fileData):
             }
         ],
     )
-    return message.content
+    return message.content[0].text
 
 def moderate_message(message, misinformationCategories):
     # Convert the list of unsafe categories into a string, with each category on a new line
@@ -157,33 +159,6 @@ def moderate_message(message, misinformationCategories):
     
     return contains_violation, violated_categories, explanation
 
-
-
-if __name__ == "__main__":
-    client = anthropicClientSetup()
-    client = LLM()
-
-    # File you're cursing parsing, can be local path or web
-    # filePath = "https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg"
-    # filePath = "media/wasted.jpeg"
-    filePath = "media/test1.png"
-    # filePath = "https://www.facebook.com/TheProjectTV/posts/rapper-50-cent-has-posted-a-photoshopped-album-cover-replacing-his-head-with-don/1045944933561837/"
-    # filePath = "media/test.pdf"
-
-    fileType, fileData = loadFile(filePath)
-    # print(f"Filetype: {fileType}")
-    # print(f"fileData: {fileData}")
-
-    if fileType.split("/")[0] == "image":
-        message = imageToText(fileType, fileData)
-    else:
-        message = "Donald Trump is the new president of Ukraine!!"
-    # tokens = (width px * height px)/750
-
-
-
-    misinformationCategories = getMisinformationCategories()
-    # print(moderate_message(message, misinformationCategories)) 
 
 
 
@@ -255,25 +230,82 @@ if __name__ == "__main__":
 
 
 
-import asyncio
 
-# Mock Vector Store
-class MockVectorStore:
+
+# class DataObject():
+#     def __init__(self, data, relevance, datatype, timestamp, source) -> None:
+#         self.data = data # stored data, such as "Trump was elected twice", or "this image depicts a chirstma"
+#         self.relevance = relevance
+#         self.datatype = datatype
+#         self.timestamp = timestamp
+#         self.source = source
+
+
+# class VectorStore:
+#     def __init__(self, initial_data):
+#         self.documents = [initial_data]
+#             # {"text": "Donald Trump was NOT elected president of Ukraine.", "embedding": [0.1, 0.2]},
+#             # {"text": "Ukraine's current president is Volodymyr Zelenskyy.", "embedding": [0.3, 0.4]},
+#             # {"text": "AI-generated misinformation is becoming a major problem.", "embedding": [0.5, 0.6]},
+
+#     async def similarity_search(self, query_embedding, top_k=5):
+#         """Returns documents that 'match' the query (mock similarity search)"""
+#         return self.documents[:top_k]
+    
+#     def add_entry(self, text, embedding):
+#         """Adds a new document with its embedding to the store."""
+#         dataObject = DataObject(text, )
+#         self.documents.append({"text": text, "embedding": embedding})
+
+
+
+
+class DataObject:
+    def __init__(self, data, relevance, datatype, timestamp, source, embedding=None):
+        self.data = data  # Stored text/image description
+        self.relevance = relevance  # Relevance score (if applicable)
+        self.datatype = datatype  # Type of data (text, image, etc.)
+        self.timestamp = timestamp  # When the data was added
+        self.source = source  # Source of data (URL, user input, etc.)
+        self.embedding = embedding or []  # Embedding representation
+
+    def compute_embedding(self, llm):
+        """Generates an embedding for the data using the LLM."""
+        loop = asyncio.get_event_loop()
+        embedding_text = loop.run_until_complete(llm.generate(f"Generate an embedding vector for: {self.data}"))
+        self.embedding = np.array([float(x) for x in embedding_text.split()])
+
+    def cosine_similarity(self, other_embedding):
+        """Computes the cosine similarity between this object and another embedding."""
+        if not self.embedding or not other_embedding:
+            return 0.0
+        
+        dot_product = np.dot(self.embedding, other_embedding)
+        norm_a = np.linalg.norm(self.embedding)
+        norm_b = np.linalg.norm(other_embedding)
+        return dot_product / (norm_a * norm_b + 1e-10)  # Avoid division by zero
+
+
+class VectorStore:
     def __init__(self):
-        self.documents = [
-            {"text": "Donald Trump was NOT elected president of Ukraine.", "embedding": [0.1, 0.2]},
-            {"text": "Ukraine's current president is Volodymyr Zelenskyy.", "embedding": [0.3, 0.4]},
-            {"text": "AI-generated misinformation is becoming a major problem.", "embedding": [0.5, 0.6]},
-        ]
+        self.documents = []
 
-    async def similarity_search(self, query_embedding, top_k=5):
-        """Returns documents that 'match' the query (mock similarity search)"""
-        return self.documents[:top_k]
+    async def similarity_search(self, query_text, llm, top_k=5):
+        """Finds the top-k most similar stored documents to the query."""
+        query_embedding_text = await llm.generate(f"Generate an embedding vector for: {query_text}")
+        query_embedding = np.array([float(x) for x in query_embedding_text.split()])
 
+        # Compute similarities
+        similarities = [(doc, doc.cosine_similarity(query_embedding)) for doc in self.documents]
+        similarities.sort(key=lambda x: x[1], reverse=True)  # Sort by highest similarity
+        
+        return [doc for doc, score in similarities[:top_k]]
 
-
-
-
+    def add_entry(self, text, llm, relevance=1.0, datatype="text", timestamp=None, source="unknown"):
+        """Adds a new document to the store after computing its embedding."""
+        data_object = DataObject(text, relevance, datatype, timestamp, source)
+        data_object.compute_embedding(llm)
+        self.documents.append(data_object)
 
 
 
@@ -305,25 +337,23 @@ class RecursiveRetrievalModule:
 # Recursive Reasoning Module
 class RecursiveReasoningModule:
     async def process_documents(self, retrieved_docs: List[Dict], initial_query: str) -> Dict:
-        insights = await LLM().generate("Synthesize insights from: " + str(retrieved_docs))
+        insights = await LLM().generate("Synthesize insights from the provided data, find potential factual invalidity and explain in depth why this query might be fa: " + str(retrieved_docs))
         return {"insights": insights}
 
 # Recursive Generation Module
 class RecursiveGenerationModule:
     async def generate_final_answer(self, reasoning_output: Dict, initial_query: str) -> str:
-        prompt = f"Final synthesis of insights: {reasoning_output['insights']} for query: {initial_query}"
+        prompt = f""" Evaluate the reliability of the user-provided data based on the following insights: {reasoning_output['insights']}. Provide a concise and informative assessment, including a percentage of certainty (0-100%) regarding the validity of the data. Be clear and direct in your response. {reasoning_output['insights']} for query: {initial_query}"""
         return await LLM().generate(prompt)
 
 # Test Function
-async def test_recursive_misinformation_pipeline():
-    vector_store = MockVectorStore()
+async def run_recursive_pipeline(initial_query):
+    vector_store = VectorStore(initial_query)
     llm = LLM()
 
     retrieval_module = RecursiveRetrievalModule(vector_store, llm)
     reasoning_module = RecursiveReasoningModule()
     generation_module = RecursiveGenerationModule()
-
-    initial_query = "Donald Trump is president of Ukraine"
     
     print("\n[STEP 1] Retrieving Documents...")
     retrieved_docs = await retrieval_module.iterative_retrieve(initial_query)
@@ -337,13 +367,40 @@ async def test_recursive_misinformation_pipeline():
     final_answer = await generation_module.generate_final_answer(reasoning_output, initial_query)
     print("Final Answer:", final_answer)
 
-# Run the test
-asyncio.run(test_recursive_misinformation_pipeline())
 
 
 
 
 
+
+
+
+if __name__ == "__main__":
+    client = anthropicClientSetup()
+
+    # File you're cursing parsing, can be local path or web
+    # filePath = "https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg"
+    # filePath = "media/wasted.jpeg"
+    filePath = "media/test1.png"
+    # filePath = "https://www.facebook.com/TheProjectTV/posts/rapper-50-cent-has-posted-a-photoshopped-album-cover-replacing-his-head-with-don/1045944933561837/"
+    # filePath = "media/test.pdf"
+
+    fileType, fileData = loadFile(filePath)
+    # print(f"Filetype: {fileType}")
+    # print(f"fileData: {fileData}")
+
+    if fileType.split("/")[0] == "image":
+        message = imageToText(fileType, fileData)
+    else:
+        message = "Donald Trump is the new president of Ukraine!!"
+    # tokens = (width px * height px)/750
+
+
+
+    misinformationCategories = getMisinformationCategories()
+    # Run the test
+    asyncio.run(run_recursive_pipeline(message))
+    # print(moderate_message(message, misinformationCategories)) 
 
 
 
