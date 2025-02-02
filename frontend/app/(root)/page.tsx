@@ -16,7 +16,7 @@ import { Container } from "@/components/layout/sections/container";
 import {InputFile} from "@/components/ui/fileupload";
 
 
-import { DataObject }  from '../components/dataobject';
+import { DataObject }  from '../../components/dataobject';
 // import {signIn} from "@/app/auth";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
