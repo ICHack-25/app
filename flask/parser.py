@@ -65,20 +65,29 @@ class LLM:
 
 
 ################ MongoDB Connection Setup ####################
-class DataObject: # object containing prompt data attributes
+class DataObject:
     def __init__(self, data, datatype, embeddings, source, time_published):
-        self.data = data # str
-        self.datatype = datatype # str
-        self.embeddings = embeddings # float[]
-        self.source = source # str
-        self.time_published = time_published # str
+        self.data = data
+        self.datatype = datatype
+        self.embeddings = embeddings
+        self.source = source
+        self.time_published = time_published
 
     def to_dict(self):
+        """Convert the object to a valid JSON-serializable dictionary"""
+        # return {
+        #     "data": self.data,
+        #     "datatype": self.datatype,  # This was missing
+        #     "embeddings": self.embeddings,
+        #     "source": self.source,
+        #     "time_published": self.time_published,
+        # }
         return {
-            "data": self.data,
-            "embeddings": self.embeddings,
-            "source": self.source,
-            "time_published": self.time_published,
+            "data": self.data or "no data",
+            "datatype": "text",
+            "embeddings": [0.1, 0.2, 0.3],
+            "source": "test_source",
+            "time_published": "2025-01-01T00:00:00Z"
         }
     
 class DBStore:
@@ -90,11 +99,12 @@ class DBStore:
         # return self.get_all()
 
     def add_entry(self, data, datatype, embeddings, source, time_published):
-        """Adds a new document to the store."""
+        # """Adds a new document to the store."""
         new_entry = DataObject(data, datatype, embeddings, source, time_published)
         # print(new_entry.to_dict())
-        response = session.post(f"{BASE_URL}/rag-add", json=new_entry.to_dict())  # Fixed URL
-        # print(response)
+        response = session.post(f"{BASE_URL}/rag-knowledge-bases", json=new_entry.to_dict())  # Fixed URL
+        print(f"{response} -> {new_entry.to_dict()['data']}")
+        # response = session.post(f"{BASE_URL}/rag-knowledge-bases", json=rag_data.to)  # Fixed URL
 
     def clear_all(self):
         """Clears all stored documents."""
@@ -103,19 +113,19 @@ class DBStore:
 
     def get_all(self):
         """Returns all stored documents as dictionaries."""
-        print("Fetching all the relevant data..\n")
+        # print("Fetching all the relevant data..\n")
         # print("\n9) GET /rag-knowledge-bases")
         response = session.get(f"{BASE_URL}/rag-knowledge-bases")
         # print("Status:", response.status_code)
         try:
-            print("Response:", response)
-            print("================================")
-            print(response.json())
-            print("================================")
-            return [i for i in response.json()]
+            # print("Response:", response)
+            # print("================================")
+            # print(response.json())
+            # print("================================")
+            return [i["data"] for i in response.json()]
             # return response.json().data
         except:
-            print("Non-JSON response:", response[data])
+            print("Non-JSON response:", response)
             print(response)
 
     def addImage(self, data, datatype, embeddings=[0.1,0.2], source="unknown", time_published="unknown"):
@@ -135,21 +145,6 @@ db = DBStore() # initialise database connection
 
 ################ Turn Image into Text desciption ####################
 def imageToText(fileType, fileData):
-    system = """
-    Please provide a highly detailed and structured description of the given image. Break down the analysis into the following categories:
-    1. **General Overview**: Describe the overall content of the image, including any people, objects, or scenes visible.
-    2. **People (if applicable)**: If the image contains people, provide a detailed description of their appearance, clothing, posture, and any relevant context (e.g., location, event).
-    3. **Objects and Items**: List and describe any notable objects or items in the image. Focus on key visual details such as shapes, colors, text (if any), and their placement within the image.
-    4. **Text or Symbols**: If the image contains any text or symbols, transcribe it exactly, and describe their size, positioning, and relevance to the image’s context.
-    5. **Background and Environment**: Describe the background, surroundings, and any environmental context that is visible (e.g., cityscape, nature, indoors).
-    6. **Color and Lighting**: Provide a description of the color scheme, lighting, shadows, and overall tone of the image. Are there any visual cues that suggest manipulation (e.g., unnatural lighting or color)?
-    7. **Potential Indicators of Misinformation**: Analyze the image for any signs of manipulation or inconsistency that might indicate misinformation. This could include:
-        - Unnatural or poorly edited elements (e.g., visible artifacts, strange lighting or shadows).
-        - Contextual clues that suggest the image might be misleading (e.g., inconsistencies in clothing or object placement).
-        - Any aspects of the image that conflict with known facts (e.g., location mismatches, outdated events).
-    8. **Contextual Relevance**: Based on the analysis, give an assessment of how reliable the image is in conveying factual information, highlighting anything that stands out as potentially misleading or fabricated.
-    9. **Additional Observations**: Any further observations that might help identify the authenticity of the image, including any references to known events, locations, or personalities.
-    """
     message = client.messages.create(
         model="claude-3-5-sonnet-20241022",
         max_tokens=1024,
@@ -167,13 +162,54 @@ def imageToText(fileType, fileData):
                     },
                     {
                         "type": "text",
-                        "text": system
+                        "text": "Thoroughly describe this file."
                     }
                 ],
             }
         ],
     )
     return message.content[0].text
+
+# def imageToText(fileType, fileData):
+#     system = """
+#     Please provide a highly detailed and structured description of the given image. Break down the analysis into the following categories:
+#     1. **General Overview**: Describe the overall content of the image, including any people, objects, or scenes visible.
+#     2. **People (if applicable)**: If the image contains people, provide a detailed description of their appearance, clothing, posture, and any relevant context (e.g., location, event).
+#     3. **Objects and Items**: List and describe any notable objects or items in the image. Focus on key visual details such as shapes, colors, text (if any), and their placement within the image.
+#     4. **Text or Symbols**: If the image contains any text or symbols, transcribe it exactly, and describe their size, positioning, and relevance to the image’s context.
+#     5. **Background and Environment**: Describe the background, surroundings, and any environmental context that is visible (e.g., cityscape, nature, indoors).
+#     6. **Color and Lighting**: Provide a description of the color scheme, lighting, shadows, and overall tone of the image. Are there any visual cues that suggest manipulation (e.g., unnatural lighting or color)?
+#     7. **Potential Indicators of Misinformation**: Analyze the image for any signs of manipulation or inconsistency that might indicate misinformation. This could include:
+#         - Unnatural or poorly edited elements (e.g., visible artifacts, strange lighting or shadows).
+#         - Contextual clues that suggest the image might be misleading (e.g., inconsistencies in clothing or object placement).
+#         - Any aspects of the image that conflict with known facts (e.g., location mismatches, outdated events).
+#     8. **Contextual Relevance**: Based on the analysis, give an assessment of how reliable the image is in conveying factual information, highlighting anything that stands out as potentially misleading or fabricated.
+#     9. **Additional Observations**: Any further observations that might help identify the authenticity of the image, including any references to known events, locations, or personalities.
+#     """
+#     message = client.messages.create(
+#         model="claude-3-5-sonnet-20241022",
+#         max_tokens=1024,
+#         messages=[
+#             {
+#                 "role": "user",
+#                 "content": [
+#                     {
+#                         "type": "image",
+#                         "source": {
+#                             "type": "base64",
+#                             "media_type": fileType,
+#                             "data": fileData,
+#                         },
+#                     },
+#                     {
+#                         "type": "text",
+#                         "text": system
+#                     }
+#                 ],
+#             }
+#         ],
+#     )
+#     return message.content[0].text
 
 
 ################ Convert Local file name into global path ####################
@@ -258,7 +294,7 @@ def moderate_message(message, misinformationCategories):
 def allConnectedReasoning():
     stored_data = db.get_all()
     if stored_data != [] and stored_data is not None:
-        query = "<DataSeparator>".join([item.data for item in db.get_all()])
+        query = "<DataSeparator>".join([item for item in db.get_all()])
     else:
         query = ""
     return query
@@ -270,10 +306,10 @@ class RecursiveRetrievalModule:
         self.llm = LLM(system="you are very good at asking potential validity and skeptical questions.")
 
     async def iterative_retrieve(self: str) -> List[Dict]:  #max_steps
-        queries = db.get_all() # str[]
+        queries = db.get_all() or [] # str[]
         if queries != []:
-            for ind in range(len(queries)):
-                query = queries[ind]
+            for ind in range(3):
+                query = "<DataSeparator>".join(queries[ind])
                 # docs = await self.db.similarity_search(query, top_k=100) # same as retr
 
                 # Generate sub-questions (mocked)
@@ -327,6 +363,8 @@ async def run_recursive_pipeline(initial_query):
     # initial_query
     
     llm = LLM("analyse this request thoroughly")
+
+    # db.add_entry("")
 
     retrieval_module = RecursiveRetrievalModule(llm)
     generate_insights = GenerateInsights()

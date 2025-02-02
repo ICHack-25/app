@@ -398,20 +398,20 @@ def get_feedback(feedback_id):
     return jsonify(fb), 200
 
 # --- Simple RAG-Add Endpoint (sample form-data approach) ---
-@app.route("/rag-add", methods=['POST'])
-def RAGAdd():
-    data = request.args['data']
-    datatype = request.args['datatype']
-    embeddings = request.args['embeddings']
-    source = request.args['source']
-    time_published = request.args['time_published']
-    return jsonify({
-        "data": data,
-        "datatype": datatype,
-        "embeddings": embeddings,
-        "source": source,
-        "time_published": time_published
-    }), 200
+# @app.route("/rag-add", methods=['POST'])
+# def RAGAdd():
+#     data = request.args['data']
+#     datatype = request.args['datatype']
+#     embeddings = request.args['embeddings']
+#     source = request.args['source']
+#     time_published = request.args['time_published']
+#     return jsonify({
+#         "data": data,
+#         "datatype": datatype,
+#         "embeddings": embeddings,
+#         "source": source,
+#         "time_published": time_published
+#     }), 200
 
 # ─────────────────────────────────────────────────────────────────────
 # NEW ENDPOINTS FOR ADDITIONAL FLEXIBILITY (CRUD Operations)
@@ -494,6 +494,7 @@ def delete_classification_result(result_id):
 @app.route("/rag-knowledge-bases/<entry_id>", methods=["PUT"])
 def update_rag_knowledge_base(entry_id):
     data = request.get_json()
+    print(f"-----------{data}-----------")
     if not data:
         return jsonify({"error": "No JSON data provided"}), 400
     try:
