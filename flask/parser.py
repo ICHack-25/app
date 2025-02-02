@@ -109,7 +109,10 @@ class DBStore:
         # print("Status:", response.status_code)
         try:
             print("Response:", response)
-            return [i[data] for i in response.json()]
+            print("================================")
+            print(response.json())
+            print("================================")
+            return [i for i in response.json()]
             # return response.json().data
         except:
             print("Non-JSON response:", response[data])
@@ -363,7 +366,7 @@ if __name__ == "__main__":
     # db.add_entry(data=query, datatype="text/plain", source="a", time_published="hello") # HACK technically /plain is not a valid MIME type, but text is
     # print(db.get_all())
     
-    db.clear_all() # clear previous knowledge, remove if you're adding new prompt whatever
+    # db.clear_all() # clear previous knowledge, remove if you're adding new prompt whatever
     for line in query.splitlines():
         db.addText(line)
     for file in files[:1]:
