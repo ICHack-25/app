@@ -2,6 +2,8 @@
 import React from "react"
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "../ui/sidebar"
 import { AppSidebar } from "../app-sidebar"
+import {DataObject} from "@/components/dataobject";
+import {Network} from "@/components/ui/network";
 
 // Mocked chat data keyed by chat ID:
 const mockChatData: Record<number, Array<{ user: string; message: string }>> = {
@@ -19,6 +21,14 @@ const mockChatData: Record<number, Array<{ user: string; message: string }>> = {
   ],
 }
 
+const mockNodesData: DataObject[] = [
+  new DataObject('File1', 'txt', 'https://arxiv.org/pdf/2501.18455'),
+  new DataObject('File2', 'pdf', '/path/to/file2.pdf'),
+  new DataObject('File3', 'jpg', '/path/to/file3.jpg'),
+  new DataObject('File4', 'docx', '/path/to/file4.docx')
+];
+
+const plainData = mockNodesData.map(obj => obj.toPlainObject());
 type DemoSidebarProps = {
   onSelectChat?: (id: number) => void
 }
@@ -86,7 +96,10 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
                 <p className="text-sm text-gray-500">
                   This is where you might display a graph or data
                   about the uploaded file(s).
+                  
+
                 </p>
+                <Network data={plainData}/>
               </div>
             </div>
           ) : (
