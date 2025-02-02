@@ -197,6 +197,7 @@ class RAGKnowledgeBaseCreate(BaseModel):
     data: str
     embeddings: List[float]
     source: str
+    datatype: str
     time_published: datetime
 
 @app.route("/rag-add", methods=['POST'])
@@ -208,6 +209,7 @@ def RAGAdd():
             "data": rag_data.data,
             "embeddings": rag_data.embeddings,
             "source": rag_data.source,
+            "datatype": rag_data.datatype,
             "time_published": rag_data.time_published
         }
         result = rag_knowledge_base_collection.insert_one(new_rag)
@@ -232,6 +234,7 @@ def RAGDelete():
             "data": rag_data.data,
             "embeddings": rag_data.embeddings,
             "source": rag_data.source,
+            "datatype": rag_data.datatype,
             "time_published": rag_data.time_published
         })
         return jsonify({"message": "Delete successfull", "num_deleted": str(result.deleted_count)})
