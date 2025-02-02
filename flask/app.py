@@ -10,6 +10,7 @@ import gridfs
 import io
 from bson import ObjectId
 from confluent_kafka import Producer
+from bson.json_util import dumps
 
 
 app = Flask(__name__)
@@ -224,6 +225,10 @@ def RAGClear():
         return jsonify({"message": "Dropped all RAG entries"})
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route("/rag-get-all")
+def RAGGetAll():
+    return dumps(rag_knowledge_base_collection)
 
 @app.route("/rag-delete", methods=['POST'])
 def RAGDelete():
