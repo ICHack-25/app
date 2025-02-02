@@ -189,7 +189,8 @@ def get_classification_results():
 @app.route("/adduser", methods=['POST'])
 def AddUser():
     """
-    Creates a new user in the database if the user doesn't exist.
+    Creates a new user in the database if the user doesn't exist,
+    or returns the existing user's ID if they already exist.
     """
     try:
         # Get user data from the request body
@@ -199,8 +200,9 @@ def AddUser():
         existing_user = users_collection.find_one({"email": user_data.email})
 
         if existing_user:
-            # If user exists, return an error message
-            return jsonify({"error": "User with this email already exists"}), 400
+            # If user exists, return their user ID
+            print("USERID: " + str(existing_user["_id"]))
+            return jsonify({"message": "User already exists", "user_id": str(existing_user["_id"])}), 200
 
         # If user does not exist, create a new user entry
         new_user = {
@@ -213,7 +215,7 @@ def AddUser():
 
         # Insert the new user into the database
         result = users_collection.insert_one(new_user)
-
+        print("USERID: " + str(result.inserted_id))
         # Return success message and the user ID
         return jsonify({"message": "User created successfully", "user_id": str(result.inserted_id)}), 201
 
@@ -223,6 +225,7 @@ def AddUser():
     except Exception as e:
         # Handle any other errors
         return jsonify({"error": str(e)}), 400
+
 
 @app.route("/classification-results/<result_id>", methods=['GET'])
 def get_classification_result(result_id):

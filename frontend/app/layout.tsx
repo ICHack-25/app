@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import { usePathname } from "next/navigation";
 const inter = Inter({ subsets: ["latin"] });
 import { SessionProvider } from "next-auth/react";
+import { UserProvider } from '@/hooks/userContext';
 
 export default function RootLayout({
   children,
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body className={cn("min-h-screen bg-background", inter.className)}>
       <SessionProvider>
 
+        <UserProvider>
 
 
         <ThemeProvider
@@ -34,6 +36,7 @@ export default function RootLayout({
 
           {children}
         </ThemeProvider>
+        </UserProvider>
       </SessionProvider>
       </body>
     </html>
