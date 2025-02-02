@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+flask = "*"
+pymongo = "*"
+confluent-kafka = "*"
+pydantic = {extras = ["email"], version = "*"}
+gunicorn = "*"
+python-dotenv = "*"
+flask-cors = "*"
+anthropic = "*"
+exceptiongroup = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.13"
