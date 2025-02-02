@@ -10,6 +10,8 @@ confluent-kafka = "*"
 pydantic = {extras = ["email"], version = "*"}
 gunicorn = "*"
 python-dotenv = "*"
+flask-cors = "*"
+anthropic = "*"
 
 [dev-packages]
 
