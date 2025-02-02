@@ -351,13 +351,17 @@ async def run_recursive_pipeline(initial_query):
 
 
 
-if __name__ == "__main__":
+def send_prompt(query, links, files):
     client = anthropicClientSetup()
     db = DBStore()
 
-    query = "Donald Trump is the new president of Ukraine!! Moon is fake."
-    links = ["https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg", "https://www.facebook.com/TheProjectTV/posts/rapper-50-cent-has-posted-a-photoshopped-album-cover-replacing-his-head-with-don/1045944933561837/"]
-    files = ["parsing/media/wasted.jpeg", "parsing/media/test1.png", "parsing/media/test.pdf"]
+    query = query
+    links = links
+    files = files
+
+    # query = "Donald Trump is the new president of Ukraine!! Moon is fake."
+    # links = ["https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg", "https://www.facebook.com/TheProjectTV/posts/rapper-50-cent-has-posted-a-photoshopped-album-cover-replacing-his-head-with-don/1045944933561837/"]
+    # files = ["parsing/media/wasted.jpeg", "parsing/media/test1.png", "parsing/media/test.pdf"]
 
 
     # def add_entry(self, data, datatype, embeddings, source, time_published):
@@ -397,9 +401,9 @@ if __name__ == "__main__":
     misinformationCategories = getMisinformationCategories()
     asyncio.run(run_recursive_pipeline(initial_query))
     
-    
-    print("========================================\n")
-    print(allConnectedReasoning())
+    return allConnectedReasoning()
+    # print("========================================\n")
+    # print(allConnectedReasoning())
     
     # Run the test
     # print(moderate_message(message, misinformationCategories)) 

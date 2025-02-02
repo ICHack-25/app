@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 from bson.json_util import dumps
+import parser
 
 env_path = Path('.env')
 load_dotenv(dotenv_path=env_path)
@@ -634,6 +635,19 @@ def delete_upload(upload_id):
     if result.deleted_count == 0:
         return jsonify({"error": "Upload not found"}), 404
     return jsonify({"message": "Upload deleted successfully"}), 200
+
+class PromptCreate(BaseModel):
+    query: str
+    links: List[str]
+    files: List[str]
+
+@app.route("/submit-prompt", methods=['POST'])
+def submit_prompt(prompt):
+    try:
+        prompt_data = PromptCreate(**prompt.json)
+        return jsonify({"data": parser.send_prompt(prompt_data.query, prompt_data.links, prompt_data.files)}), 200
+    except Exception as e:
+        return jsonify({"message": e}), 400
 
 # ─────────────────────────────────────────────────────────────────────
 # END OF NEW FLEXIBLE ENDPOINTS
