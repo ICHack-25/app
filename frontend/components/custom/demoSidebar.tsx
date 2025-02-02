@@ -4,6 +4,17 @@ import { z } from "zod"
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "../ui/sidebar"
 import { AppSidebar } from "../app-sidebar"
 import Axios from 'axios'
+import { DataObject } from "../dataobject"
+import {ClusterNetwork} from "@/components/ui/clusternetwork";
+
+const mockNodesData: DataObject[] = [
+  new DataObject('File1', 'txt', 'https://arxiv.org/pdf/2501.18455'),
+  new DataObject('File2', 'pdf', '/path/to/file2.pdf'),
+  new DataObject('File3', 'jpg', '/path/to/file3.jpg'),
+  new DataObject('File4', 'docx', '/path/to/file4.docx')
+];
+
+const plainData = mockNodesData.map(obj => obj.toPlainObject());
 
 // Mocked chat data keyed by chat ID:
 const mockChatData: Record<number, Array<{ user: string; message: string }>> = {
@@ -134,6 +145,8 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
               {/* Right column: A "card" that could display a graph or other info */}
               <div className="border rounded-md p-4 shadow">
                 <h2 className="text-lg font-semibold mb-2">Files / Graph</h2>
+                <ClusterNetwork data={plainData}/>
+
                 <p className="text-sm text-gray-500">
                   This is where you might display a graph or data about the uploaded file(s).
                 </p>
