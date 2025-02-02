@@ -25,6 +25,8 @@ const Page = () => {
         return null;  // Don't render the page content until redirection
     }
 
+    // localStorage.setItem('userId', '1');
+
     // Render the protected content if the user is authenticated
     return (
         <div>

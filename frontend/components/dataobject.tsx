@@ -63,3 +63,63 @@ export const convertToNodes = (dataObjects: { name: string; file_type: string; f
 export interface NetworkProps {
     data: { name: string; file_type: string; file_path: string }[];
 }
+
+export function getRandomNewsProvider() {
+    const newsProviders = [
+        "BBC News",
+        "CNN",
+        "Reuters",
+        "The Guardian",
+        "The New York Times",
+        "Al Jazeera",
+        "The Washington Post",
+        "Bloomberg",
+        "Fox News",
+        "The Independent",
+        "Associated Press",
+        "The Times",
+        "USA Today",
+        "The Huffington Post",
+        "NPR",
+        "ABC News",
+        "Sky News",
+        "Newsweek",
+        "The Telegraph",
+        "Financial Times",
+        "The Wall Street Journal",
+        "The Daily Mail",
+        "Guardian Australia",
+        "Le Monde",
+        "El País",
+        "Le Figaro",
+        "Der Spiegel",
+        "The Sydney Morning Herald",
+        "Time",
+        "Forbes",
+        "The Sun",
+        "Reuters UK",
+        "The Atlantic",
+        "Business Insider",
+        "The New Yorker",
+        "Politico",
+        "The Independent UK",
+        "CNA",
+        "RT",
+        "Fox Business",
+        "The Economist",
+        "The Nation",
+        "Deutsche Welle",
+        "HuffPost",
+        "Channel NewsAsia",
+        "The Times of India",
+        "The Japan Times",
+        "South China Morning Post",
+        "Global Times",
+        "The Korea Times",
+        "The Hindu"
+    ];
+
+    // Randomly select a news provider from the list
+    const randomIndex = Math.floor(Math.random() * newsProviders.length);
+    return newsProviders[randomIndex];
+}

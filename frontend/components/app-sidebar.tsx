@@ -34,6 +34,8 @@ import {
 // The reusable row we created
 import { ItemRow } from "./ItemRow"
 import Link from "next/link"
+import axios from "axios";
+import { useUser } from '@/hooks/userContext';
 
 // Example initial data
 const INITIAL_ITEMS = [
@@ -48,12 +50,25 @@ type AppSidebarProps = {
 
 export function AppSidebar({ onSelectItem, ...props }: AppSidebarProps) {
   const [items, setItems] = React.useState(INITIAL_ITEMS)
-
   // CREATE
-  function handleCreateItem() {
+  const handleCreateItem = async () => {
     // (POST request placeholder)
+
+
+
+
     const newId = items.length ? items[items.length - 1].id + 1 : 1
-    const newItem = { id: newId, title: `Previous Chat #${newId}` }
+    const newItem = { id: newId, title: `Previous Chat #${newId}`, user_id: '1' }
+
+    console.log(newItem);
+
+    const response = await axios.post('http://localhost:5000/chats/', newItem, {
+      headers: {
+        'Content-Type': 'application/json', // Make sure it's sent as JSON
+        'X-API-KEY': 'testkey123',  // Custom header with API key
+      },
+    });
+
     setItems((prev) => [...prev, newItem])
     // Optionally select the newly created item
     onSelectItem?.(newId)
@@ -93,6 +108,11 @@ export function AppSidebar({ onSelectItem, ...props }: AppSidebarProps) {
   function handleConfirmDelete() {
     if (currentDeleteItemId == null) return
     // (DELETE request placeholder)
+
+
+
+
+
     setItems((prev) => prev.filter((i) => i.id !== currentDeleteItemId))
     setDeleteDialogOpen(false)
   }
