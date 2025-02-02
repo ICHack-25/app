@@ -359,18 +359,6 @@ def send_prompt(query, links, files):
     links = links
     files = files
 
-    # query = "Donald Trump is the new president of Ukraine!! Moon is fake."
-    # links = ["https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg", "https://www.facebook.com/TheProjectTV/posts/rapper-50-cent-has-posted-a-photoshopped-album-cover-replacing-his-head-with-don/1045944933561837/"]
-    # files = ["parsing/media/wasted.jpeg", "parsing/media/test1.png", "parsing/media/test.pdf"]
-
-
-    # def add_entry(self, data, datatype, embeddings, source, time_published):
-    
-    # # add the query
-    # db.add_entry(data=query, datatype="text/plain", source="a", time_published="hello") # HACK technically /plain is not a valid MIME type, but text is
-    # print(db.get_all())
-    
-    # db.clear_all() # clear previous knowledge, remove if you're adding new prompt whatever
     for line in query.splitlines():
         db.addText(line)
     for file in files[:1]:
@@ -380,28 +368,12 @@ def send_prompt(query, links, files):
             
             
     initial_query = allConnectedReasoning()
-    # db.get_all()
-    # print([i.data for i in db.get_all()])
-    # db.clear_all()
-    # message = query
-
-    # filePath = 
-
-    # fileType, fileData = loadFile(filePath)
-    # # print(f"Filetype: {fileType}")
-    # # print(f"fileData: {fileData}")
-
-    # if fileType.split("/")[0] == "image":
-    #     message = imageToText(fileType, fileData)
-    # else:
-    #     message = "Donald Trump is the new president of Ukraine!!"
-    # # tokens = (width px * height px)/750
 
 
     misinformationCategories = getMisinformationCategories()
-    asyncio.run(run_recursive_pipeline(initial_query))
+    output = asyncio.run(run_recursive_pipeline(initial_query))
     
-    return allConnectedReasoning()
+    return output
     # print("========================================\n")
     # print(allConnectedReasoning())
     
