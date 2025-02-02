@@ -1,3 +1,5 @@
+import base64
+import mimetypes
 import json
 from flask import Flask, request, jsonify, send_file, abort
 from pymongo.mongo_client import MongoClient
@@ -105,12 +107,23 @@ def upload_file():
     url = request.form.get("url")
     text = request.form.get("text")
     user_id = request.form.get("user_id", "test")
-
-    # Save file to GridFS if provided
+    
+    # Initialize variables for the file-related data.
+    encoded_image = None
+    file_type = None
     image_id = None
-    if file:
-        image_id = str(fs.put(file, filename=file.filename))
 
+    if file:
+        # Read the file data into memory
+        file_data = file.read()
+        # Encode the file in base64 so that it remains in the same format
+        # for clients like Claude (Anthropic Vision API) to read.
+        encoded_image = base64.standard_b64encode(file_data).decode("utf-8")
+        # Determine the file’s MIME type.
+        file_type = file.mimetype or mimetypes.guess_type(file.filename)[0]
+        # Save the binary file to GridFS using a BytesIO stream.
+        image_id = str(fs.put(io.BytesIO(file_data), filename=file.filename))
+    
     try:
         # Create the Uploads model instance.
         upload_model = Uploads(
@@ -122,6 +135,10 @@ def upload_file():
         
         # Convert the model to a dict using aliases.
         upload_dict = upload_model.dict(by_alias=True, exclude_unset=True)
+        # Add the encoded image and file type if available.
+        if encoded_image is not None:
+            upload_dict["encoded_image"] = encoded_image
+            upload_dict["file_type"] = file_type
         
         # Insert the document into the uploads collection.
         inserted_id = uploads_collection.insert_one(upload_dict).inserted_id
@@ -137,6 +154,7 @@ def upload_file():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
 
 
 @app.route('/download/<filename>', methods=['GET'])
