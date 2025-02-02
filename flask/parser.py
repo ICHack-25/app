@@ -13,6 +13,8 @@ load_dotenv()
 BASE_URL = "http://127.0.0.1:5000" 
 API_KEY = "testkey123"
 
+FINAL_OUTPUT = None
+
 # Use a session to keep headers consistent
 session = requests.Session()
 session.headers.update({
@@ -381,6 +383,7 @@ async def run_recursive_pipeline(initial_query):
     print("\n[STEP 3] Generating Final Answer...")
     final_answer = await generation_module.generate_final_answer(insights, initial_query)
     print("Final Answer:", final_answer)
+    FINAL_OUTPUT = final_answer
 
 
 
@@ -409,9 +412,9 @@ def send_prompt(query, links, files):
 
 
     misinformationCategories = getMisinformationCategories()
-    output = asyncio.run(run_recursive_pipeline(initial_query))
+    asyncio.run(run_recursive_pipeline(initial_query))
     
-    return output
+    return FINAL_OUTPUT
     # print("========================================\n")
     # print(allConnectedReasoning())
     

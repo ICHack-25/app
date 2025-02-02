@@ -16,11 +16,13 @@ from pathlib import Path
 import os
 from bson.json_util import dumps
 import parser
+from flask_cors import CORS
 
 env_path = Path('.env')
 load_dotenv(dotenv_path=env_path)
 
 app = Flask(__name__)
+CORS(app)
 
 # --- MongoDB Setup ---
 uri = os.getenv("MONGO_URI", "")
