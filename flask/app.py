@@ -12,6 +12,7 @@ from confluent_kafka import Producer
 from dotenv import load_dotenv
 from pathlib import Path
 import os
+from bson.json_util import dumps
 
 env_path = Path('.env')
 load_dotenv(dotenv_path=env_path)

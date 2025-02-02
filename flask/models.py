@@ -24,6 +24,7 @@ class RAGKnowledgeBase(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     data: str
     embeddings: List[float] # list of floats
+    datatype: str
     source: str
     time_published: datetime
 
