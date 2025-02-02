@@ -11,7 +11,14 @@ import requests
 
 load_dotenv()
 BASE_URL = "http://127.0.0.1:5000"
+API_KEY = "testkey123"
 
+# Use a session to keep headers consistent
+session = requests.Session()
+session.headers.update({
+    "X-API-Key": API_KEY,
+    "Content-Type": "application/json"
+})
 
 ################ SETUP Anthropic API ####################
 def anthropicClientSetup():
@@ -69,7 +76,6 @@ class DataObject: # object containing prompt data attributes
     def to_dict(self):
         return {
             "data": self.data,
-            "datatype": self.datatype,
             "embeddings": self.embeddings,
             "source": self.source,
             "time_published": self.time_published,
@@ -87,18 +93,24 @@ class DBStore:
         """Adds a new document to the store."""
         new_entry = DataObject(data, datatype, embeddings, source, time_published)
         print(new_entry.to_dict())
-        response = requests.post(f"{BASE_URL}/rag-knowledge-bases", json=new_entry.to_dict())  # Fixed URL
+        response = session.post(f"{BASE_URL}/rag-add", json=new_entry.to_dict())  # Fixed URL
         print(response)
 
     def clear_all(self):
         """Clears all stored documents."""
-        response = requests.delete(f"{BASE_URL}/rag-knowledge-bases", json={})  # Use DELETE method
+        response = session.delete(f"{BASE_URL}/rag-knowledge-bases", json={})  # Use DELETE method
         print(response)
 
     def get_all(self):
         """Returns all stored documents as dictionaries."""
-        response = requests.get(f"{BASE_URL}/rag-knowledge-bases", json={})  # Use GET method
-        print(response)
+        print("\n9) GET /rag-knowledge-bases")
+        resp = session.get(f"{BASE_URL}/rag-knowledge-bases")
+        print("Status:", resp.status_code)
+        try:
+            print("Response:", resp.json())
+        except:
+            print("Non-JSON response:", resp.text)
+            print(response)
 
     def addImage(self, data, datatype, embeddings=[0.1,0.2], source="unknown", time_published="unknown"):
         self.add_entry(imageToText(data), embeddings, datatype, source, time_published)
@@ -424,7 +436,7 @@ if __name__ == "__main__":
 
 
 # # Send a POST request to /rag-add
-# # response = requests.post(f"{BASE_URL}/rag-add", json=rag_data)
+# # response = session.post(f"{BASE_URL}/rag-add", json=rag_data)
 # # print("Add Response:", response.json())
 
 # # # Send a POST request to /rag-get
