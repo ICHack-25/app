@@ -56,8 +56,8 @@ export const Network: React.FC<NetworkProps> = ({ data }) => {
 
     return (
         <div style={{
-            width: '600px',  // Set fixed width
-            height: '400px', // Set fixed height
+            width: '100%',  // Set fixed width
+            height: '300px', // Set fixed height
             position: 'relative',
             border: '1px solid #EA5925', // Optional: for visual boundary
             overflow: 'hidden', // Optional: to prevent overflow
