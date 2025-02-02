@@ -3,3 +3,4 @@ pymongo
 pydantic
 confluent-kafka
 pydantic[email]
+gunicorn
