@@ -4,6 +4,7 @@ import React from 'react';
 import { ThreeEvent } from '@react-three/fiber';
 import { GraphCanvas, darkTheme, InternalGraphNode, GraphNode } from 'reagraph';
 import { NetworkProps, DataObject, convertToNodes, Node } from '@/components/dataobject';
+import axios from 'axios';
 
 const nodes = [
     { id: 'n-1', label: 'Node 1', data: { type: 'A', url: 'https://example.com/1' } },
@@ -19,15 +20,45 @@ export const ClusterNetwork = ({data}  : NetworkProps) => {
     const nodes = convertToNodes(data);
     const edges : GraphNode[] = [];
 
-    // Handle node click by opening the node's URL
-    const handleNodeClick = (node: InternalGraphNode, props?: any, event?: ThreeEvent<MouseEvent>) => {
-        // Extract URL from the clicked node's data
-        const nodeData = node.data;
-        if (nodeData && nodeData.url) {
-            window.open(nodeData.url, '_blank');  // Open URL in a new tab
+    const handleNodeClick = async (node : any) => {
+        try {
+            const resourceName = node.data.name;
+            // Make sure to include the API key in headers
+            const response = await axios.get(`http://localhost:5000/download/${resourceName}`, {
+                headers: {
+                    'X-API-Key': 'YOUR_API_KEY',  // Replace with your actual key
+                },
+                responseType: 'blob', // Important to get raw binary data
+            });
+
+            // Create a Blob from the response data
+            const fileBlob = new Blob([response.data], {
+                type: response.headers['content-type'] || 'application/octet-stream'
+            });
+
+            // Generate a temporary object URL for the blob
+            const fileBlobUrl = URL.createObjectURL(fileBlob);
+
+            // If it's an image, you can set the URL as the `src` of an <img> element
+            // or if you just want to force a download, you can simulate a link click:
+
+            // Option 1: Display in a new browser tab (good for PDFs, images, etc.)
+            window.open(fileBlobUrl, '_blank');
+
+            // Option 2: Force a file download
+            // const link = document.createElement('a');
+            // link.href = fileBlobUrl;
+            // link.setAttribute('download', filename);
+            // document.body.appendChild(link);
+            // link.click();
+            // document.body.removeChild(link);
+
+            // Or update state to use in your component, e.g. an <img>:
+            // setFileUrl(fileBlobUrl);
+        } catch (error) {
+            console.error('File download error:', error);
         }
     };
-
     return (
         <>
             <div
