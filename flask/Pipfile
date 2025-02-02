@@ -9,6 +9,7 @@ pymongo = "*"
 confluent-kafka = "*"
 pydantic = {extras = ["email"], version = "*"}
 gunicorn = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
