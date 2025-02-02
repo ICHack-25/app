@@ -50,3 +50,12 @@ jobs:
         push: true
         tags: ${{ steps.meta_flask.outputs.tags }}
         labels: ${{ steps.meta_flask.outputs.labels }}
+    
+    # Make image public explicitly
+    - name: Make image public
+      run: |
+        gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+        gh api --method PATCH \
+        -H "Accept: application/vnd.github+json" \
+        /user/packages/container/${{ github.event.repository.name }}/visibility \
+        -f visibility=public
