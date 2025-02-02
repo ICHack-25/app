@@ -22,6 +22,9 @@ import { Button } from "../ui/button";
 import Link from "next/link";
 import Image from "next/image";
 import { ToggleTheme } from "./toogle-theme";
+import {LoginButton} from "@/components/LoginButton";
+import { useSession } from "next-auth/react";
+import {LogoutButton} from "@/components/LogoutButton";
 
 interface RouteProps {
   href: string;
@@ -37,10 +40,6 @@ const routeList: RouteProps[] = [
   {
     href: "#testimonials",
     label: "Testimonials",
-  },
-  {
-    href: "#team",
-    label: "Team",
   },
   {
     href: "#contact",
@@ -71,6 +70,7 @@ const featureList: FeatureProps[] = [
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const { data : session } = useSession();
   return (
     <header className="shadow-inner bg-opacity-15 w-[90%] md:w-[70%] lg:w-[75%] lg:max-w-screen-xl top-5 mx-auto sticky border border-secondary z-40 rounded-2xl flex justify-between items-center p-2 bg-card">
       <Link href="/" className="font-bold text-lg flex items-center">
@@ -114,15 +114,20 @@ export const Navbar = () => {
                   </Button>
                 ))}
               </div>
+
+
             </div>
 
             <SheetFooter className="flex-col sm:flex-col justify-start items-start">
               <Separator className="mb-2" />
 
               <ToggleTheme />
+
             </SheetFooter>
+
           </SheetContent>
         </Sheet>
+
       </div>
 
       {/* <!-- Desktop --> */}
@@ -165,6 +170,9 @@ export const Navbar = () => {
         </NavigationMenuList>
       </NavigationMenu>
 
+      {session ? <LogoutButton/> : <LoginButton/>}
+
+
       <div className="hidden lg:flex">
         <ToggleTheme />
 
@@ -175,6 +183,7 @@ export const Navbar = () => {
             target="_blank"
           >
             <Github className="size-5" />
+
           </Link>
         </Button>
       </div>
