@@ -383,6 +383,7 @@ async def run_recursive_pipeline(initial_query):
     print("\n[STEP 3] Generating Final Answer...")
     final_answer = await generation_module.generate_final_answer(insights, initial_query)
     print("Final Answer:", final_answer)
+    global FINAL_OUTPUT
     FINAL_OUTPUT = final_answer
 
 
@@ -413,7 +414,7 @@ def send_prompt(query, links, files):
 
     misinformationCategories = getMisinformationCategories()
     asyncio.run(run_recursive_pipeline(initial_query))
-    
+    global FINAL_OUTPUT
     return FINAL_OUTPUT
     # print("========================================\n")
     # print(allConnectedReasoning())
