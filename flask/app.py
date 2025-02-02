@@ -157,28 +157,6 @@ def DBTest():
         user["_id"] = str(user["_id"])
     return json.dumps({"users": users}, default=str)
 
-@app.route("/adduser", methods=['POST'])
-def AddUser():
-    """
-    Creates a new user in the database.
-    """
-    try:
-        user_data = UserCreate(**request.json)
-        new_user = {
-            "username": user_data.username,
-            "email": user_data.email,
-            "password_hash": user_data.password_hash,
-            "role": user_data.role,
-            "created_at": datetime.utcnow()
-        }
-        result = users_collection.insert_one(new_user)
-        return jsonify({"message": "User created successfully", "user_id": str(result.inserted_id)}), 201
-    except ValidationError as ve:
-        return jsonify({"error": ve.errors()}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-# --- ClassificationResult Endpoints ---
 @app.route("/classification-results", methods=['POST'])
 def add_classification_result():
     data = request.get_json()
@@ -197,12 +175,54 @@ def add_classification_result():
     result_dict["_id"] = str(inserted.inserted_id)
     return jsonify(result_dict), 201
 
+
+
+# --- ClassificationResult Endpoints ---
 @app.route("/classification-results", methods=['GET'])
 def get_classification_results():
     results = list(classification_results_collection.find())
     for result in results:
         result["_id"] = str(result["_id"])
     return jsonify(results), 200
+
+
+@app.route("/adduser", methods=['POST'])
+def AddUser():
+    """
+    Creates a new user in the database if the user doesn't exist.
+    """
+    try:
+        # Get user data from the request body
+        user_data = UserCreate(**request.json)
+
+        # Check if the user already exists (using email in this case)
+        existing_user = users_collection.find_one({"email": user_data.email})
+
+        if existing_user:
+            # If user exists, return an error message
+            return jsonify({"error": "User with this email already exists"}), 400
+
+        # If user does not exist, create a new user entry
+        new_user = {
+            "username": user_data.username,
+            "email": user_data.email,
+            "password_hash": user_data.password_hash,
+            "role": user_data.role,
+            "created_at": datetime.utcnow()
+        }
+
+        # Insert the new user into the database
+        result = users_collection.insert_one(new_user)
+
+        # Return success message and the user ID
+        return jsonify({"message": "User created successfully", "user_id": str(result.inserted_id)}), 201
+
+    except ValidationError as ve:
+        # Handle validation errors
+        return jsonify({"error": ve.errors()}), 400
+    except Exception as e:
+        # Handle any other errors
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/classification-results/<result_id>", methods=['GET'])
 def get_classification_result(result_id):
