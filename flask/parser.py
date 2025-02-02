@@ -1,14 +1,13 @@
 import anthropic
 import os
-# import mimetypes
-# import base64
-# import httpx
 from dotenv import load_dotenv
 import json
 from typing import List, Dict
 import asyncio
 import requests
-
+# import mimetypes
+# import base64
+# import httpx
 
 load_dotenv()
 BASE_URL = "http://127.0.0.1:5000"
@@ -84,9 +83,9 @@ class DBStore:
         return []
         # return self.get_all()
 
-    def add_entry(self, data, datatype, source, time_published):
+    def add_entry(self, data, datatype, embeddings, source, time_published):
         """Adds a new document to the store."""
-        new_entry = DataObject(data, datatype, [0.1,0.2], source, time_published)
+        new_entry = DataObject(data, datatype, embeddings, source, time_published)
         print(new_entry.to_dict())
         response = requests.post(f"{BASE_URL}/rag-knowledge-bases", json=new_entry.to_dict())  # Fixed URL
         print(response)
@@ -101,11 +100,11 @@ class DBStore:
         response = requests.get(f"{BASE_URL}/rag-knowledge-bases", json={})  # Use GET method
         print(response)
 
-    def addImage(self, data, datatype, source="unknown", time_published="unknown"):
-        self.add_entry(self, imageToText(data), datatype, source, time_published)
+    def addImage(self, data, datatype, embeddings=[0.1,0.2], source="unknown", time_published="unknown"):
+        self.add_entry(imageToText(data), embeddings, datatype, source, time_published)
 
-    def addText(self, data, datatype="text/plain", source="unknown", time_published="unknown"):
-        self.add_entry(self, data, datatype, source, time_published)
+    def addText(self, data, datatype="text/plain", embeddings=[0.1,0.2], source="unknown", time_published="unknown"):
+        self.add_entry(data, datatype, embeddings, source, time_published)
 
 db = DBStore() # initialise database connection
 
@@ -317,9 +316,11 @@ if __name__ == "__main__":
 
     # def add_entry(self, data, datatype, embeddings, source, time_published):
     
-    # add the query
-    db.add_entry(data=query, datatype="text/plain", source="a", time_published="hello") # HACK technically /plain is not a valid MIME type, but text is
-    print(db.get_all())
+    # # add the query
+    # db.add_entry(data=query, datatype="text/plain", source="a", time_published="hello") # HACK technically /plain is not a valid MIME type, but text is
+    # print(db.get_all())
+    
+    db.addText("something")
     
     message = query
 
