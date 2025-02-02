@@ -252,37 +252,43 @@ def moderate_message(message, misinformationCategories):
     return contains_violation, violated_categories, explanation
 
 
-
+def allConnectedReasoning():
+    stored_data = db.get_all()
+    if stored_data != [] and stored_data is not None:
+        query = "<DataSeparator>".join([item.data for item in db.get_all()])
+    else:
+        query = ""
+    return query
 
 
 ###################### Recursive Retrieval Module ######################
 class RecursiveRetrievalModule:
-    def __init__(self, db, llm):
-        self.db = db
-        self.llm = llm
+    def __init__(self, llm):
+        self.llm = LLM(system="you are very good at asking potential validity and skeptical questions.")
 
-    async def iterative_retrieve(self, initial_query: str, max_steps: int = 3) -> List[Dict]:
-        query = initial_query
-        retrieved_documents = []
+    async def iterative_retrieve(self: str) -> List[Dict]:  #max_steps
+        queries = db.get_all() # str[]
+        if queries != []:
+            for ind in range(len(queries)):
+                query = queries[ind]
+                # docs = await self.db.similarity_search(query, top_k=100) # same as retr
 
-        for _ in range(max_steps):
-            docs = await self.db.similarity_search(query, top_k=100)
-            retrieved_documents.extend(docs)
-
-            # Generate sub-questions (mocked)
-            sub_questions = await self.llm.generate("Generate sub-questions for: " + query)
-            if not sub_questions:
-                break
-
-            query = " ".join(sub_questions)
-
-        return retrieved_documents
+                # Generate sub-questions (mocked)
+                sub_questions = await self.llm.generate(f"Generate sub-questions for: {query}. Strictly write in line \n newline etc.")
+                if not sub_questions:
+                    break
+                
+                
+                # query = " ".join(sub_questions)
+                for line in sub_questions.splitlines():
+                    db.addText(line)
 
 
 
 ###################### Recursive Reasoning Module ######################
-class RecursiveReasoningModule:
-    async def process_documents(self, retrieved_docs: List[Dict], initial_query: str) -> Dict:
+class GenerateInsights:
+    async def process_documents(self) -> Dict:
+        retrieved_docs = allConnectedReasoning()
         llm = LLM(system="You are an advanced reasoning engine that critically analyses retrieved documents. Identify key insights, detect factual inconsistencies, and explain any discrepancies in depth. Ensure logical coherence in your findings.")
 
         insights = await llm.generate(
@@ -293,9 +299,10 @@ class RecursiveReasoningModule:
 
 ###################### Recursive Generation Module ######################
 class RecursiveGenerationModule:
-    async def generate_final_answer(self, reasoning_output: Dict, initial_query: str) -> str:
+    async def generate_final_answer(self, overall_insights, initial_query: str) -> str:
+        reasoning_output = allConnectedReasoning()
         llm = LLM(system="You are a precise evaluator of information validity. Assess insights critically, determine the reliability of provided data, and quantify certainty in a structured manner.")
-        prompt = f"""Evaluate the reliability of the user-provided data based on the following insights: {reasoning_output['insights']}. 
+        prompt = f"""Evaluate the reliability of the user-provided data based on the following insights: {overall_insights['insights']}. 
         - Identify whether the insights suggest factual accuracy or inconsistency.  
         - Provide a clear, structured assessment.  
         - Assign a certainty percentage (0-100%) based on the reasoning.  
@@ -306,32 +313,32 @@ class RecursiveGenerationModule:
 
 
 ###################### Final Report Generation Pipeline ######################
-async def run_recursive_pipeline():
+async def run_recursive_pipeline(initial_query):
     """Main Pipeline"""
-    stored_data = db.get_all()
-    if stored_data != [] and stored_data is not None:
-        query = "<DataSeparator>".join([item.data for item in db.get_all()])
-    else:
-        query = ""
+    # stored_data = db.get_all()
+    # if stored_data != [] and stored_data is not None:
+    #     query = "<DataSeparator>".join([item.data for item in db.get_all()])
+    # else:
+    #     query = ""
     # print(query)
     # initial_query
     
     llm = LLM("analyse this request thoroughly")
 
-    retrieval_module = RecursiveRetrievalModule(db, llm)
-    reasoning_module = RecursiveReasoningModule()
+    retrieval_module = RecursiveRetrievalModule(llm)
+    generate_insights = GenerateInsights()
     generation_module = RecursiveGenerationModule()
     
     print("\n[STEP 1] Retrieving Documents...")
-    retrieved_docs = await retrieval_module.iterative_retrieve(query)
+    retrieved_docs = await retrieval_module.iterative_retrieve()
     print("Retrieved Docs:", retrieved_docs)
 
     print("\n[STEP 2] Processing Documents...")
-    reasoning_output = await reasoning_module.process_documents(retrieved_docs, query)
-    print("Reasoning Output:", reasoning_output)
+    insights = await generate_insights.process_documents()
+    print("Reasoning Output:", insights)
 
     print("\n[STEP 3] Generating Final Answer...")
-    final_answer = await generation_module.generate_final_answer(reasoning_output, query)
+    final_answer = await generation_module.generate_final_answer(insights, initial_query)
     print("Final Answer:", final_answer)
 
 
@@ -363,6 +370,9 @@ if __name__ == "__main__":
         dtype, data = loadLocalFile(nameToPath(file))
         if dtype.split("/")[0] == "image":
             db.addImage(data, dtype)
+            
+            
+    initial_query = allConnectedReasoning()
     # db.get_all()
     # print([i.data for i in db.get_all()])
     # db.clear_all()
@@ -382,7 +392,7 @@ if __name__ == "__main__":
 
 
     misinformationCategories = getMisinformationCategories()
-    asyncio.run(run_recursive_pipeline())
+    asyncio.run(run_recursive_pipeline(initial_query))
     
     # Run the test
     # print(moderate_message(message, misinformationCategories)) 
