@@ -2,7 +2,7 @@ import json
 from flask import Flask, request, jsonify, send_file, abort
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from models import *  # This imports your Pydantic models (User, ClassificationResult, RAGKnowledgeBase, Uploads, TextAnalysis, URLAnalysis, Feedback)
+from models import *  # This imports your Pydantic models
 from pydantic import BaseModel, EmailStr, ValidationError
 from datetime import datetime
 import gridfs
@@ -79,8 +79,6 @@ def check_api_key():
         abort(403, description="Invalid or inactive API key")
 # ─── END GLOBAL API KEY CHECK ─────────────────────────────────────────
 
-# ─── API ENDPOINTS ─────────────────────────────────────────────────────
-
 @app.route('/protected-endpoint', methods=['POST'])
 def protected_endpoint():
     data = request.get_json()
@@ -89,7 +87,6 @@ def protected_endpoint():
 
     topic_name = 'topic_0'
     try:
-        # Produce a message (asynchronously) to Kafka.
         producer.produce(topic=topic_name, value=json.dumps(data), callback=delivery_report)
         producer.poll(0)
         producer.flush()
@@ -101,38 +98,45 @@ def protected_endpoint():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     """
-    Accepts file uploads and/or a URL or text. 
-    The `Uploads` model requires at least one of [url, image_id, text].
-    A `user_id` is also required (or defaults to "test" if not provided).
+    Accepts file uploads and/or a URL or text.
+    At least one of `url`, `image_id`, or `text` must be provided.
     """
     file = request.files.get("file")
     url = request.form.get("url")
     text = request.form.get("text")
-    user_id = request.form.get("user_id")  # if not provided, Pydantic default is "test"
+    user_id = request.form.get("user_id", "test")
 
-    # If a file is provided, store it in GridFS.
+    # Save file to GridFS if provided
     image_id = None
     if file:
         image_id = str(fs.put(file, filename=file.filename))
 
     try:
-        upload_data = Uploads(
+        # Validate the input using the Pydantic model
+        upload_model = Uploads(
             url=url,
             image_id=image_id,
             text=text,
-            user_id=user_id if user_id else "test"
-        ).dict(by_alias=True)
+            user_id=user_id
+        )
+        # Save validated data to the database
+        upload_id = uploads_collection.insert_one(upload_model.dict(by_alias=True)).inserted_id
+
+        return jsonify({
+            "message": "Upload saved successfully",
+            "upload_id": str(upload_id),
+            "data": upload_model.dict(by_alias=True)
+        }), 201
     except ValidationError as e:
+        # Catch Pydantic validation errors and return as JSON
         return jsonify({"error": e.errors()}), 400
+    except ValueError as e:
+        # Catch value errors (e.g., from field validators)
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        # Catch all other exceptions
+        return jsonify({"error": str(e)}), 500
 
-    # Save the validated data into the uploads collection.
-    upload_id = uploads_collection.insert_one(upload_data).inserted_id
-
-    return jsonify({
-        "message": "Upload saved successfully",
-        "upload_id": str(upload_id),
-        "data": upload_data
-    }), 201
 
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
@@ -177,10 +181,6 @@ def AddUser():
 # --- ClassificationResult Endpoints ---
 @app.route("/classification-results", methods=['POST'])
 def add_classification_result():
-    """
-    Expects JSON matching the ClassificationResult model.
-    The JSON field 'user_id' will map to the model's 'reviewed_by' field.
-    """
     data = request.get_json()
     if not data:
         return jsonify({"error": "No JSON body provided"}), 400
@@ -190,8 +190,10 @@ def add_classification_result():
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 400
 
-    result_dict = result_model.dict(by_alias=True)  # by_alias -> "user_id" in the DB
+    # Exclude the 'id' field so we never pass _id=None
+    result_dict = result_model.dict(by_alias=True, exclude={"id"})
     inserted = classification_results_collection.insert_one(result_dict)
+    # Attach the real inserted _id
     result_dict["_id"] = str(inserted.inserted_id)
     return jsonify(result_dict), 201
 
@@ -227,7 +229,7 @@ def add_rag_knowledge_base():
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 400
 
-    entry_dict = entry.dict(by_alias=True)
+    entry_dict = entry.dict(by_alias=True, exclude={"id"})
     inserted = rag_knowledge_base_collection.insert_one(entry_dict)
     entry_dict["_id"] = str(inserted.inserted_id)
     return jsonify(entry_dict), 201
@@ -255,14 +257,6 @@ def get_rag_knowledge_base(entry_id):
 # --- TextAnalysis Endpoints ---
 @app.route("/text-analyses", methods=['POST'])
 def add_text_analysis():
-    """
-    Expects:
-    {
-      "user_id": "...",
-      "text_content": "...",
-      "classification_result_id": "..." (optional)
-    }
-    """
     data = request.get_json()
     if not data:
         return jsonify({"error": "No JSON body provided"}), 400
@@ -272,7 +266,7 @@ def add_text_analysis():
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 400
 
-    analysis_dict = analysis.dict(by_alias=True)  # 'classification_result_id' stored as 'classification_result'
+    analysis_dict = analysis.dict(by_alias=True, exclude={"id"})
     inserted = text_analysis_collection.insert_one(analysis_dict)
     analysis_dict["_id"] = str(inserted.inserted_id)
     return jsonify(analysis_dict), 201
@@ -300,14 +294,6 @@ def get_text_analysis(analysis_id):
 # --- URLAnalysis Endpoints ---
 @app.route("/url-analyses", methods=['POST'])
 def add_url_analysis():
-    """
-    Expects:
-    {
-      "user_id": "...",
-      "url": "...",
-      "classification_result_id": "..." (optional)
-    }
-    """
     data = request.get_json()
     if not data:
         return jsonify({"error": "No JSON body provided"}), 400
@@ -317,7 +303,7 @@ def add_url_analysis():
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 400
 
-    analysis_dict = analysis.dict(by_alias=True)
+    analysis_dict = analysis.dict(by_alias=True, exclude={"id"})
     inserted = url_analysis_collection.insert_one(analysis_dict)
     analysis_dict["_id"] = str(inserted.inserted_id)
     return jsonify(analysis_dict), 201
@@ -345,15 +331,6 @@ def get_url_analysis(analysis_id):
 # --- Feedback Endpoints ---
 @app.route("/feedback", methods=['POST'])
 def add_feedback():
-    """
-    Expects:
-    {
-      "user_id": "...",
-      "classification_result": "...",  # classification_result ID
-      "feedback_text": "...",
-      "helpful": true/false
-    }
-    """
     data = request.get_json()
     if not data:
         return jsonify({"error": "No JSON body provided"}), 400
@@ -363,7 +340,7 @@ def add_feedback():
     except ValidationError as e:
         return jsonify({"error": e.errors()}), 400
 
-    fb_dict = fb_model.dict(by_alias=True)
+    fb_dict = fb_model.dict(by_alias=True, exclude={"id"})
     inserted = feedback_collection.insert_one(fb_dict)
     fb_dict["_id"] = str(inserted.inserted_id)
     return jsonify(fb_dict), 201
