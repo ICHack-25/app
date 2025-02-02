@@ -32,7 +32,7 @@ class Uploads(BaseModel):
     url: Optional[HttpUrl] = None
     image_id: Optional[str] = None  # Reference to GridFS file _id
     text: Optional[str] = None
-    user: str = Field(default="test")
+    user_id: str = Field(default="test")
 
     @field_validator("url", "image_id", "text", mode="before")
     @classmethod
@@ -43,19 +43,19 @@ class Uploads(BaseModel):
 
 class TextAnalysis(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
-    user: str  # User ID as a string
+    user_id: str  # User ID instead of Username
     text_content: str
     classification_result: Optional[str] = Field(None, alias="classification_result_id")  # Reference to ClassificationResult ID
 
 class URLAnalysis(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
-    user: str  # User ID as a string
+    user_id: str  # User ID instead of Username
     url: str
     classification_result: Optional[str] = Field(None, alias="classification_result_id")  # Reference to ClassificationResult ID
 
 class Feedback(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
-    user: str  # User ID as a string
+    user_id: str  # User ID instead of Username
     classification_result: str  # ClassificationResult ID
     feedback_text: Optional[str] = None
     helpful: bool = True

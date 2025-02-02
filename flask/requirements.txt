@@ -1,5 +1,4 @@
 flask
 pymongo
 pydantic
-gridfs
 confluent-kafka
