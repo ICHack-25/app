@@ -400,15 +400,15 @@ def get_feedback(feedback_id):
 @app.route("/rag-add", methods=['POST'])
 def RAGAdd():
     data = request.args['data']
+    datatype = request.args['datatype']
     embeddings = request.args['embeddings']
     source = request.args['source']
-    datatype = request.args['datatype']
     time_published = request.args['time_published']
     return jsonify({
         "data": data,
+        "datatype": datatype,
         "embeddings": embeddings,
         "source": source,
-        "datatype": datatype,
         "time_published": time_published
     }), 200
 

@@ -266,7 +266,7 @@ def allConnectedReasoning():
 
 ###################### Recursive Retrieval Module ######################
 class RecursiveRetrievalModule:
-    def __init__(self, llm):
+    def __init__(self):
         self.llm = LLM(system="you are very good at asking potential validity and skeptical questions.")
 
     async def iterative_retrieve(self: str) -> List[Dict]:  #max_steps
