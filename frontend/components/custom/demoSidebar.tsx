@@ -1,5 +1,6 @@
 "use client"
 import React from "react"
+import { z } from "zod"
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "../ui/sidebar"
 import { AppSidebar } from "../app-sidebar"
 
@@ -35,6 +36,8 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
   const [isFileMode, setIsFileMode] = React.useState(true)
   const [fileValue, setFileValue] = React.useState<File | null>(null)
   const [linkValue, setLinkValue] = React.useState("")
+  // New state for additional text input
+  const [inputText, setInputText] = React.useState("")
 
   // Load the chat data when we pick a different chat
   React.useEffect(() => {
@@ -46,6 +49,15 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
   /** Called when user submits the form. */
   function handleParameterForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    // Zod schema to validate the additional text (max 500 characters)
+    const textSchema = z.string().max(500, "Additional text must be 500 characters or less.")
+    const textValidation = textSchema.safeParse(inputText)
+    if (!textValidation.success) {
+      alert(textValidation.error.errors[0].message)
+      return
+    }
+
     // For now, just log the states. Replace with your real logic or an API call.
     console.log("Form submitted with:")
     console.log("  Selected chat ID:", selectedId)
@@ -54,6 +66,7 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
     console.log("  isFileMode:", isFileMode)
     console.log("  fileValue:", fileValue)
     console.log("  linkValue:", linkValue)
+    console.log("  Additional Text:", inputText)
   }
 
   return (
@@ -84,8 +97,7 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
                   <MyGraph filesUsed={...} />
                 */}
                 <p className="text-sm text-gray-500">
-                  This is where you might display a graph or data
-                  about the uploaded file(s).
+                  This is where you might display a graph or data about the uploaded file(s).
                 </p>
               </div>
             </div>
@@ -107,6 +119,8 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
                 setFileValue={setFileValue}
                 linkValue={linkValue}
                 setLinkValue={setLinkValue}
+                inputText={inputText}
+                setInputText={setInputText}
                 onSubmit={handleParameterForm}
               />
             </div>
@@ -155,12 +169,15 @@ type ParameterFormProps = {
   setFileValue: (val: File | null) => void
   linkValue: string
   setLinkValue: (val: string) => void
+  // New props for the additional text input
+  inputText: string
+  setInputText: (val: string) => void
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
 }
 
 /**
  * A fixed bar at the bottom with a toggle for file/link,
- * plus temperature + maxTokens, and a Submit button.
+ * plus temperature + maxTokens, additional text input, and a Submit button.
  * Wrapped in a <form> that calls onSubmit.
  */
 function ParameterForm({
@@ -174,12 +191,14 @@ function ParameterForm({
   setFileValue,
   linkValue,
   setLinkValue,
+  inputText,
+  setInputText,
   onSubmit,
 }: ParameterFormProps) {
   return (
     <form
       onSubmit={onSubmit}
-      className="flex items-end gap-4 rounded-md border border-gray-700 bg-gray-900 
+      className="flex flex-wrap items-end gap-4 rounded-md border border-gray-700 bg-gray-900 
                  p-3 fixed bottom-5 max-w-4xl"
     >
       {/* Temperature Input */}
@@ -263,6 +282,21 @@ function ParameterForm({
           <label className="mt-1 text-xs text-gray-400">Link</label>
         </div>
       )}
+
+      {/* New Additional Text Input */}
+      <div className="flex flex-col items-center">
+        <textarea
+          placeholder="Enter additional text..."
+          value={inputText}
+          onChange={(e) => setInputText(e.target.value)}
+          className="w-64 h-20 rounded-md bg-transparent px-2 py-1 text-sm text-gray-100 
+                     placeholder-gray-400 ring-0 focus:outline-none 
+                     border border-transparent focus:border-gray-600"
+        />
+        <label className="mt-1 text-xs text-gray-400">
+          Additional Text (max 500 chars)
+        </label>
+      </div>
 
       {/* Submit Button */}
       <button
