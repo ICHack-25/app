@@ -54,7 +54,7 @@ class Uploads(BaseModel):
         Ensure at least one of 'url', 'image_id', or 'text' is provided.
         """
         values = info.data or {}
-        if not any([values.get("url"), values.get("image_id"), values.get("text")]):
+        if not ([values.get("url"), values.get("image_id"), values.get("text")]):
             raise ValueError("At least one of 'url', 'image_id', or 'text' must be provided.")
         return value
 
