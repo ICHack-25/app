@@ -3,8 +3,7 @@ import React from "react"
 import { z } from "zod"
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "../ui/sidebar"
 import { AppSidebar } from "../app-sidebar"
-import Axios from 'axios';
-
+import Axios from 'axios'
 
 // Mocked chat data keyed by chat ID:
 const mockChatData: Record<number, Array<{ user: string; message: string }>> = {
@@ -22,8 +21,7 @@ const mockChatData: Record<number, Array<{ user: string; message: string }>> = {
   ],
 }
 
-let currentChatData = {};
-
+let currentChatData = {}
 
 type DemoSidebarProps = {
   onSelectChat?: (id: number) => void
@@ -41,24 +39,30 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
   const [isFileMode, setIsFileMode] = React.useState(true)
   const [fileValue, setFileValue] = React.useState<File | null>(null)
   const [linkValue, setLinkValue] = React.useState("")
-  // New state for additional text input
+  // Additional text input that we’ll use as the query
   const [inputText, setInputText] = React.useState("")
 
+  // (Optional) Initial fetch if you need some data on mount.
   React.useEffect(() => {
     const fetchData = async () => {
-      try { // objects
-        const response = await Axios.get('https://api.example.com/data'); // string
-        console.log('Data:', response.data);
-        currentChatData = response.data;
+      try {
+        const payload = {
+          "query": inputText,
+          "links": linkValue,
+          "files": fileValue,
+        }
+        const response = await Axios.post('http://ichack25-flask.containers.uwcs.co.uk/submit-prompt', payload)
+        console.log('Data:', response.data)
+        currentChatData = response.data
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching data:', error)
       }
     };
-  
+
     fetchData();
   }, []);
 
-  // Load the chat data when we pick a different chat
+  // Load the chat data when a different chat is selected
   React.useEffect(() => {
     if (selectedId !== null) {
       setChatMessages(mockChatData[selectedId] || [])
@@ -66,10 +70,10 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
   }, [selectedId])
 
   /** Called when user submits the form. */
-  function handleParameterForm(e: React.FormEvent<HTMLFormElement>) {
+  async function handleParameterForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
-    // Zod schema to validate the additional text (max 500 characters)
+    // Validate additional text (max 500 characters)
     const textSchema = z.string().max(500, "Additional text must be 500 characters or less.")
     const textValidation = textSchema.safeParse(inputText)
     if (!textValidation.success) {
@@ -77,15 +81,34 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
       return
     }
 
-    // For now, just log the states. Replace with your real logic or an API call.
-    console.log("Form submitted with:")
-    console.log("  Selected chat ID:", selectedId)
-    console.log("  Temperature:", temperature)
-    console.log("  Max Tokens:", maxTokens)
-    console.log("  isFileMode:", isFileMode)
-    console.log("  fileValue:", fileValue)
-    console.log("  linkValue:", linkValue)
-    console.log("  Additional Text:", inputText)
+    // Build the payload based on mode:
+    const payload = {
+      // Here, we use the additional text as the query.
+      query: inputText,
+      // If not in file mode, include the link (if provided) in an array.
+      links: !isFileMode && linkValue ? [linkValue] : [],
+      // In file mode, if a file is provided, send its name (in a real app, use FormData for the actual file).
+      files: isFileMode && fileValue ? [fileValue.name] : []
+    }
+
+    console.log("Submitting payload:", payload)
+
+    try {
+      const response = await Axios.post('http://ichack25-flask.containers.uwcs.co.uk/submit-prompt', payload)
+      console.log("Response data:", response.data)
+
+      // Append the returned data as a new chat message.
+      setChatMessages(prev => [
+        ...prev,
+        { user: "assistant", message: response.data }
+      ])
+    } catch (error) {
+      console.error("Error submitting prompt:", error)
+      setChatMessages(prev => [
+        ...prev,
+        { user: "assistant", message: "Error submitting prompt" }
+      ])
+    }
   }
 
   return (
@@ -111,10 +134,6 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
               {/* Right column: A "card" that could display a graph or other info */}
               <div className="border rounded-md p-4 shadow">
                 <h2 className="text-lg font-semibold mb-2">Files / Graph</h2>
-                {/* 
-                  TODO: Insert your Graph component here, for instance:
-                  <MyGraph filesUsed={...} />
-                */}
                 <p className="text-sm text-gray-500">
                   This is where you might display a graph or data about the uploaded file(s).
                 </p>
@@ -188,7 +207,6 @@ type ParameterFormProps = {
   setFileValue: (val: File | null) => void
   linkValue: string
   setLinkValue: (val: string) => void
-  // New props for the additional text input
   inputText: string
   setInputText: (val: string) => void
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void
@@ -197,7 +215,6 @@ type ParameterFormProps = {
 /**
  * A fixed bar at the bottom with a toggle for file/link,
  * plus temperature + maxTokens, additional text input, and a Submit button.
- * Wrapped in a <form> that calls onSubmit.
  */
 function ParameterForm({
   temperature,
@@ -302,7 +319,7 @@ function ParameterForm({
         </div>
       )}
 
-      {/* New Additional Text Input */}
+      {/* Additional Text Input */}
       <div className="flex flex-col items-center">
         <textarea
           placeholder="Enter additional text..."
