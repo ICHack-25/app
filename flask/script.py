@@ -1,16 +1,22 @@
 import requests
 import json
-import os
 
-BASE_URL = "http://127.0.0.1:5000"  # or wherever your Flask app is running
+BASE_URL = "http://127.0.0.1:5000"  # Adjust if your Flask server runs elsewhere
 API_KEY = "testkey123"
 
-# Use a session to keep headers consistent
+# Use a session to maintain consistent headers (including our API key)
 session = requests.Session()
 session.headers.update({
     "X-API-Key": API_KEY,
     "Content-Type": "application/json"
 })
+
+def print_response(resp):
+    print("Status:", resp.status_code)
+    try:
+        print("Response:", json.dumps(resp.json(), indent=2))
+    except Exception:
+        print("Non-JSON response:", resp.text)
 
 def main():
     print("=== Testing Flask Endpoints ===")
@@ -18,326 +24,269 @@ def main():
     # 1) GET /
     print("\n1) GET /")
     resp = session.get(f"{BASE_URL}/")
-    print("Status:", resp.status_code)
-    print("Response:", resp.text)
+    print_response(resp)
 
     # 2) POST /protected-endpoint
     print("\n2) POST /protected-endpoint")
-    data_to_send = {"test": "value"}
-    resp = session.post(f"{BASE_URL}/protected-endpoint", json=data_to_send)
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
+    data = {"message": "Hello from protected endpoint"}
+    resp = session.post(f"{BASE_URL}/protected-endpoint", json=data)
+    print_response(resp)
 
     # 3) POST /adduser
     print("\n3) POST /adduser")
-    new_user_data = {
+    user_data = {
         "username": "testuser",
         "email": "testuser@example.com",
         "password_hash": "hashedpassword",
         "role": "user"
     }
-    resp = session.post(f"{BASE_URL}/adduser", json=new_user_data)
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-        if resp.status_code == 201:
-            new_user_id = resp.json().get("user_id")
-        else:
-            new_user_id = None
-    except:
-        print("Non-JSON response:", resp.text)
-        new_user_id = None
+    resp = session.post(f"{BASE_URL}/adduser", json=user_data)
+    print_response(resp)
+    user_id = None
+    if resp.status_code == 201:
+        user_id = resp.json().get("user_id")
 
-    # 4) GET /dbtest (list users)
-    print("\n4) GET /dbtest")
-    resp = session.get(f"{BASE_URL}/dbtest")
-    print("Status:", resp.status_code)
-    print("Response:", resp.text)
+    # 4) GET /users (new flexible endpoint)
+    print("\n4) GET /users")
+    resp = session.get(f"{BASE_URL}/users")
+    print_response(resp)
 
-    # 5) POST /classification-results
-    #    Adjust to match the ClassificationResult model’s fields:
-    #    classification_type, confidence_score, model_version, prompt, reviewed_by
-    print("\n5) POST /classification-results")
+    # 5) PUT /users/<user_id>
+    if user_id:
+        print(f"\n5) PUT /users/{user_id} (update role to 'admin')")
+        update_data = {"role": "admin"}
+        resp = session.put(f"{BASE_URL}/users/{user_id}", json=update_data)
+        print_response(resp)
+
+    # 6) DELETE /users/<user_id>
+    if user_id:
+        print(f"\n6) DELETE /users/{user_id}")
+        resp = session.delete(f"{BASE_URL}/users/{user_id}")
+        print_response(resp)
+
+    # 7) POST /classification-results
+    print("\n7) POST /classification-results")
     classification_data = {
-        "classification_type": "test-label",
-        "confidence_score": 0.95,
-        "model_version": "test-model",
-        "prompt": "some sample prompt",
-        "user_id": new_user_id if new_user_id else "some_user_id"
+        "classification_type": "sample-type",
+        "confidence_score": 0.99,
+        "model_version": "v1.0",
+        "prompt": "Sample prompt text",
+        "user_id": user_id if user_id else "dummy"
     }
     resp = session.post(f"{BASE_URL}/classification-results", json=classification_data)
-    print("Status:", resp.status_code)
-    try:
-        classification_resp = resp.json()
-        print("Response:", classification_resp)
-        if resp.status_code == 201:
-            classification_result_id = classification_resp.get("_id")
-        else:
-            classification_result_id = None
-    except:
-        print("Non-JSON response:", resp.text)
-        classification_result_id = None
+    print_response(resp)
+    class_result_id = None
+    if resp.status_code == 201:
+        class_result_id = resp.json().get("_id")
 
-    # 6) GET /classification-results
-    print("\n6) GET /classification-results")
+    # 8) GET /classification-results
+    print("\n8) GET /classification-results")
     resp = session.get(f"{BASE_URL}/classification-results")
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
+    print_response(resp)
 
-    # 7) GET /classification-results/<result_id>
-    if classification_result_id:
-        print(f"\n7) GET /classification-results/{classification_result_id}")
-        resp = session.get(f"{BASE_URL}/classification-results/{classification_result_id}")
-        print("Status:", resp.status_code)
-        try:
-            print("Response:", resp.json())
-        except:
-            print("Non-JSON response:", resp.text)
-    else:
-        print("\n7) Skipping GET /classification-results/<result_id> because we have no ID.")
+    # 9) PUT /classification-results/<result_id>
+    if class_result_id:
+        print(f"\n9) PUT /classification-results/{class_result_id} (update confidence_score to 0.95)")
+        update_data = {"confidence_score": 0.95}
+        resp = session.put(f"{BASE_URL}/classification-results/{class_result_id}", json=update_data)
+        print_response(resp)
 
-    # 8) POST /rag-knowledge-bases
-    #    Your RAGKnowledgeBase model requires: data, datatype, embeddings, source, time_published
-    print("\n8) POST /rag-knowledge-bases")
-    rag_entry_data = {
-        "data": "Sample RAG knowledge base text",
-        "datatype": "text",  # or whatever fits your app
+    # 10) DELETE /classification-results/<result_id>
+    if class_result_id:
+        print(f"\n10) DELETE /classification-results/{class_result_id}")
+        resp = session.delete(f"{BASE_URL}/classification-results/{class_result_id}")
+        print_response(resp)
+
+    # 11) POST /rag-knowledge-bases
+    print("\n11) POST /rag-knowledge-bases")
+    rag_data = {
+        "data": "Sample RAG entry data",
+        "datatype": "text",
         "embeddings": [0.1, 0.2, 0.3],
-        "source": "sample_source",
-        # time_published is not optional in your model,
-        # so supply a datetime in ISO or a string your server can parse:
+        "source": "test_source",
         "time_published": "2025-01-01T00:00:00Z"
     }
-    resp = session.post(f"{BASE_URL}/rag-knowledge-bases", json=rag_entry_data)
-    print("Status:", resp.status_code)
-    try:
-        rag_resp = resp.json()
-        print("Response:", rag_resp)
-        if resp.status_code == 201:
-            rag_entry_id = rag_resp.get("_id")
-        else:
-            rag_entry_id = None
-    except:
-        print("Non-JSON response:", resp.text)
-        rag_entry_id = None
+    resp = session.post(f"{BASE_URL}/rag-knowledge-bases", json=rag_data)
+    print_response(resp)
+    rag_entry_id = None
+    if resp.status_code == 201:
+        rag_entry_id = resp.json().get("_id")
 
-    # 9) GET /rag-knowledge-bases
-    print("\n9) GET /rag-knowledge-bases")
+    # 12) GET /rag-knowledge-bases
+    print("\n12) GET /rag-knowledge-bases")
     resp = session.get(f"{BASE_URL}/rag-knowledge-bases")
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
+    print_response(resp)
 
-    # 10) GET /rag-knowledge-bases/<entry_id>
+    # 13) PUT /rag-knowledge-bases/<entry_id>
     if rag_entry_id:
-        print(f"\n10) GET /rag-knowledge-bases/{rag_entry_id}")
-        resp = session.get(f"{BASE_URL}/rag-knowledge-bases/{rag_entry_id}")
-        print("Status:", resp.status_code)
-        try:
-            print("Response:", resp.json())
-        except:
-            print("Non-JSON response:", resp.text)
-    else:
-        print("\n10) Skipping GET /rag-knowledge-bases/<entry_id> because we have no ID.")
+        print(f"\n13) PUT /rag-knowledge-bases/{rag_entry_id} (update source)")
+        update_data = {"source": "updated_source"}
+        resp = session.put(f"{BASE_URL}/rag-knowledge-bases/{rag_entry_id}", json=update_data)
+        print_response(resp)
 
-    # 11) POST /text-analyses
-    #     Model expects: user_id, text_content, classification_result_id (optional).
-    print("\n11) POST /text-analyses")
-    text_analysis_data = {
-        "user_id": new_user_id if new_user_id else "some_user_id",
-        "text_content": "Sample text content for analysis",
-        # classification_result_id references the doc from step 5:
-        "classification_result_id": classification_result_id  
+    # 14) DELETE /rag-knowledge-bases/<entry_id>
+    if rag_entry_id:
+        print(f"\n14) DELETE /rag-knowledge-bases/{rag_entry_id}")
+        resp = session.delete(f"{BASE_URL}/rag-knowledge-bases/{rag_entry_id}")
+        print_response(resp)
+
+    # 15) POST /text-analyses
+    print("\n15) POST /text-analyses")
+    text_data = {
+        "user_id": user_id if user_id else "dummy",
+        "text_content": "This is some sample text for analysis",
+        "classification_result_id": class_result_id if class_result_id else "dummy"
     }
-    resp = session.post(f"{BASE_URL}/text-analyses", json=text_analysis_data)
-    print("Status:", resp.status_code)
-    try:
-        text_analysis_resp = resp.json()
-        print("Response:", text_analysis_resp)
-        if resp.status_code == 201:
-            text_analysis_id = text_analysis_resp.get("_id")
-        else:
-            text_analysis_id = None
-    except:
-        print("Non-JSON response:", resp.text)
-        text_analysis_id = None
+    resp = session.post(f"{BASE_URL}/text-analyses", json=text_data)
+    print_response(resp)
+    text_analysis_id = None
+    if resp.status_code == 201:
+        text_analysis_id = resp.json().get("_id")
 
-    # 12) GET /text-analyses
-    print("\n12) GET /text-analyses")
+    # 16) GET /text-analyses
+    print("\n16) GET /text-analyses")
     resp = session.get(f"{BASE_URL}/text-analyses")
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
+    print_response(resp)
 
-    # 13) GET /text-analyses/<analysis_id>
+    # 17) PUT /text-analyses/<analysis_id>
     if text_analysis_id:
-        print(f"\n13) GET /text-analyses/{text_analysis_id}")
-        resp = session.get(f"{BASE_URL}/text-analyses/{text_analysis_id}")
-        print("Status:", resp.status_code)
-        try:
-            print("Response:", resp.json())
-        except:
-            print("Non-JSON response:", resp.text)
-    else:
-        print("\n13) Skipping GET /text-analyses/<analysis_id> because we have no ID.")
+        print(f"\n17) PUT /text-analyses/{text_analysis_id} (update text_content)")
+        update_data = {"text_content": "Updated text content"}
+        resp = session.put(f"{BASE_URL}/text-analyses/{text_analysis_id}", json=update_data)
+        print_response(resp)
 
-    # 14) POST /url-analyses
-    #     Model expects: user_id, url, classification_result_id (optional).
-    print("\n14) POST /url-analyses")
-    url_analysis_data = {
-        "user_id": new_user_id if new_user_id else "some_user_id",
+    # 18) DELETE /text-analyses/<analysis_id>
+    if text_analysis_id:
+        print(f"\n18) DELETE /text-analyses/{text_analysis_id}")
+        resp = session.delete(f"{BASE_URL}/text-analyses/{text_analysis_id}")
+        print_response(resp)
+
+    # 19) POST /url-analyses
+    print("\n19) POST /url-analyses")
+    url_data = {
+        "user_id": user_id if user_id else "dummy",
         "url": "https://www.example.com",
-        "classification_result_id": classification_result_id  # optional
+        "classification_result_id": class_result_id if class_result_id else "dummy"
     }
-    resp = session.post(f"{BASE_URL}/url-analyses", json=url_analysis_data)
-    print("Status:", resp.status_code)
-    try:
-        url_analysis_resp = resp.json()
-        print("Response:", url_analysis_resp)
-        if resp.status_code == 201:
-            url_analysis_id = url_analysis_resp.get("_id")
-        else:
-            url_analysis_id = None
-    except:
-        print("Non-JSON response:", resp.text)
-        url_analysis_id = None
+    resp = session.post(f"{BASE_URL}/url-analyses", json=url_data)
+    print_response(resp)
+    url_analysis_id = None
+    if resp.status_code == 201:
+        url_analysis_id = resp.json().get("_id")
 
-    # 15) GET /url-analyses
-    print("\n15) GET /url-analyses")
+    # 20) GET /url-analyses
+    print("\n20) GET /url-analyses")
     resp = session.get(f"{BASE_URL}/url-analyses")
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
+    print_response(resp)
 
-    # 16) GET /url-analyses/<analysis_id>
+    # 21) PUT /url-analyses/<analysis_id>
     if url_analysis_id:
-        print(f"\n16) GET /url-analyses/{url_analysis_id}")
-        resp = session.get(f"{BASE_URL}/url-analyses/{url_analysis_id}")
-        print("Status:", resp.status_code)
-        try:
-            print("Response:", resp.json())
-        except:
-            print("Non-JSON response:", resp.text)
-    else:
-        print("\n16) Skipping GET /url-analyses/<analysis_id> because we have no ID.")
+        print(f"\n21) PUT /url-analyses/{url_analysis_id} (update url)")
+        update_data = {"url": "https://www.updated-example.com"}
+        resp = session.put(f"{BASE_URL}/url-analyses/{url_analysis_id}", json=update_data)
+        print_response(resp)
 
-    # 17) POST /feedback
-    #     You only get here if classification_result_id is set.
-    #     Model expects: user_id, classification_result (the doc ID), feedback_text, helpful
-    print("\n17) POST /feedback")
-    if classification_result_id:
-        feedback_data = {
-            "user_id": new_user_id if new_user_id else "some_user_id",
-            "classification_result": classification_result_id,  # from step 5
-            "feedback_text": "This is a piece of feedback",
-            "helpful": True
-        }
-        resp = session.post(f"{BASE_URL}/feedback", json=feedback_data)
-        print("Status:", resp.status_code)
-        try:
-            feedback_resp = resp.json()
-            print("Response:", feedback_resp)
-            if resp.status_code == 201:
-                feedback_id = feedback_resp.get("_id")
-            else:
-                feedback_id = None
-        except:
-            print("Non-JSON response:", resp.text)
-            feedback_id = None
-    else:
-        print("No classification_result_id. Skipping feedback test.")
-        feedback_id = None
+    # 22) DELETE /url-analyses/<analysis_id>
+    if url_analysis_id:
+        print(f"\n22) DELETE /url-analyses/{url_analysis_id}")
+        resp = session.delete(f"{BASE_URL}/url-analyses/{url_analysis_id}")
+        print_response(resp)
 
-    # 18) GET /feedback
-    print("\n18) GET /feedback")
-    resp = session.get(f"{BASE_URL}/feedback")
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
-
-    # 19) GET /feedback/<feedback_id>
-    if feedback_id:
-        print(f"\n19) GET /feedback/{feedback_id}")
-        resp = session.get(f"{BASE_URL}/feedback/{feedback_id}")
-        print("Status:", resp.status_code)
-        try:
-            print("Response:", resp.json())
-        except:
-            print("Non-JSON response:", resp.text)
-    else:
-        print("\n19) Skipping GET /feedback/<feedback_id> because we have no ID.")
-
-    # 20) POST /rag-add (form-data approach)
-    print("\n20) POST /rag-add (form-data)")
-    form_data = {
-        "data": "some data here",
-        "embeddings": "[1.0, 2.0]",
-        "source": "test_source",
-        "time_published": "2025-01-01"
+    # 23) POST /feedback
+    print("\n23) POST /feedback")
+    feedback_data = {
+        "user_id": user_id if user_id else "dummy",
+        "classification_result": class_result_id if class_result_id else "dummy",
+        "feedback_text": "This is a sample feedback",
+        "helpful": True
     }
-    resp = requests.post(
-        f"{BASE_URL}/rag-add",
-        headers={"X-API-Key": API_KEY},  # keep the API key
-        data=form_data                  # sending as form data
-    )
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
+    resp = session.post(f"{BASE_URL}/feedback", json=feedback_data)
+    print_response(resp)
+    feedback_id = None
+    if resp.status_code == 201:
+        feedback_id = resp.json().get("_id")
 
-    # 21) POST /upload with text only
-    #     Server must fix the Uploads validator so it doesn’t crash under Pydantic v2
-    print("\n21) POST /upload with text only (no file)")
+    # 24) GET /feedback
+    print("\n24) GET /feedback")
+    resp = session.get(f"{BASE_URL}/feedback")
+    print_response(resp)
+
+    # 25) PUT /feedback/<feedback_id>
+    if feedback_id:
+        print(f"\n25) PUT /feedback/{feedback_id} (update feedback_text)")
+        update_data = {"feedback_text": "Updated feedback text"}
+        resp = session.put(f"{BASE_URL}/feedback/{feedback_id}", json=update_data)
+        print_response(resp)
+
+    # 26) DELETE /feedback/<feedback_id>
+    if feedback_id:
+        print(f"\n26) DELETE /feedback/{feedback_id}")
+        resp = session.delete(f"{BASE_URL}/feedback/{feedback_id}")
+        print_response(resp)
+
+    # 27) POST /upload with text only (no file)
+    print("\n27) POST /upload with text only")
     upload_data = {
-        "user_id": new_user_id if new_user_id else "test",
+        "user_id": user_id if user_id else "test",
         "text": "Just a text sample, no file"
     }
+    resp = session.post(f"{BASE_URL}/upload", data=upload_data)
+    print_response(resp)
+    upload_id = None
+    if resp.status_code == 201:
+        upload_id = resp.json().get("upload_id")
+
+    # 28) POST /upload with a file
+    print("\n28) POST /upload with a file")
+    file_content = b"Hello, this is a test file."
+    files = {"file": ("testfile.txt", file_content)}
+    form_fields = {"user_id": user_id if user_id else "test"}
+    # Note: when sending files we set headers separately
     resp = requests.post(
         f"{BASE_URL}/upload",
         headers={"X-API-Key": API_KEY},
-        data=upload_data  # or json=upload_data if the endpoint expects JSON
-    )
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
-
-    # 22) POST /upload with file
-    print("\n22) POST /upload with a file")
-    file_content = b"Hello, this is a test file"
-    files = {
-        "file": ("testfile.txt", file_content)
-    }
-    form_fields = {
-        "user_id": new_user_id if new_user_id else "test"
-    }
-    resp = requests.post(
-        f"{BASE_URL}/upload",
-        headers={"X-API-Key": API_KEY},  # include the API key
         files=files,
         data=form_fields
     )
-    print("Status:", resp.status_code)
-    try:
-        print("Response:", resp.json())
-    except:
-        print("Non-JSON response:", resp.text)
+    print_response(resp)
+    upload_id_2 = None
+    if resp.status_code == 201:
+        upload_id_2 = resp.json().get("upload_id")
+
+    # 29) GET /upload/<upload_id>
+    if upload_id:
+        print(f"\n29) GET /upload/{upload_id}")
+        resp = session.get(f"{BASE_URL}/upload/{upload_id}")
+        print_response(resp)
+
+        print(f"\n30) PUT /upload/{upload_id} (update text field)")
+        update_data = {"text": "Updated text for upload"}
+        resp = session.put(f"{BASE_URL}/upload/{upload_id}", json=update_data)
+        print_response(resp)
+
+        print(f"\n31) DELETE /upload/{upload_id}")
+        resp = session.delete(f"{BASE_URL}/upload/{upload_id}")
+        print_response(resp)
+
+    # 32) GET, PUT, DELETE for second upload if exists
+    if upload_id_2:
+        print(f"\n32) GET /upload/{upload_id_2}")
+        resp = session.get(f"{BASE_URL}/upload/{upload_id_2}")
+        print_response(resp)
+
+        print(f"\n33) PUT /upload/{upload_id_2} (update text field)")
+        update_data = {"text": "Updated text for second upload"}
+        resp = session.put(f"{BASE_URL}/upload/{upload_id_2}", json=update_data)
+        print_response(resp)
+
+        print(f"\n34) DELETE /upload/{upload_id_2}")
+        resp = session.delete(f"{BASE_URL}/upload/{upload_id_2}")
+        print_response(resp)
+
+    # 35) DELETE all RAG knowledge base entries
+    print("\n35) DELETE /rag-knowledge-bases (delete all entries)")
+    resp = session.delete(f"{BASE_URL}/rag-knowledge-bases")
+    print_response(resp)
 
     print("\n=== Testing complete ===")
 
