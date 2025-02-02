@@ -20,25 +20,25 @@ headers = {
     'Authorization': f'Bearer {API_KEY}',
 }
 
-link = "https://www.snopes.com/fact-check/beer-egypt-pyramids-rations/"
-text = scrape(link)
+def provide_statements(link: str) -> str:
+    text = scrape(link)
 
-message = f"Analyze this content and provide statements \
-            that are easy to factually check (whether they are true or false). \
-            Here is the text: {text}"
+    message = f"Analyze this content and provide statements \
+                that are easy to factually check (whether they are true or false). \
+                Here is the text: {text}"
 
-messages = [
-    {"role": "system", "content": "You are a helpful assistant."},
-    {"role": "user", "content": message}
-]
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": message}
+    ]
 
-data = {
-    "model": "gpt-3.5-turbo",  # Use "gpt-4" for GPT-4 or "gpt-3.5-turbo" for GPT-3.5
-    "messages": messages,
-    "max_tokens": 100,
-}
+    data = {
+        "model": "gpt-3.5-turbo",  # Use "gpt-4" for GPT-4 or "gpt-3.5-turbo" for GPT-3.5
+        "messages": messages,
+        "max_tokens": 100,
+    }
 
-response = requests.post(url, headers=headers, data=json.dumps(data))
+    response = requests.post(url, headers=headers, data=json.dumps(data))
 
-response_data = response.json()
-print(response_data['choices'][0]['message']['content'])
+    response_data = response.json()
+    return response_data['choices'][0]['message']['content']
