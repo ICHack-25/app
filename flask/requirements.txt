@@ -4,3 +4,4 @@ pydantic
 confluent-kafka
 pydantic[email]
 requests
+gunicorn

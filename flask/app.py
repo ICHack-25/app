@@ -270,6 +270,7 @@ def add_text_analysis():
     inserted = text_analysis_collection.insert_one(analysis_dict)
     analysis_dict["_id"] = str(inserted.inserted_id)
     return jsonify(analysis_dict), 201
+#
 
 @app.route("/text-analyses", methods=['GET'])
 def get_text_analyses():
