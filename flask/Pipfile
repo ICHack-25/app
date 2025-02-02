@@ -12,6 +12,7 @@ gunicorn = "*"
 python-dotenv = "*"
 flask-cors = "*"
 anthropic = "*"
+exceptiongroup = "*"
 
 [dev-packages]
 
