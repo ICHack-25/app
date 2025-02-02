@@ -3,6 +3,8 @@ import React from "react"
 import { z } from "zod"
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "../ui/sidebar"
 import { AppSidebar } from "../app-sidebar"
+import Axios from 'axios';
+
 
 // Mocked chat data keyed by chat ID:
 const mockChatData: Record<number, Array<{ user: string; message: string }>> = {
@@ -19,6 +21,9 @@ const mockChatData: Record<number, Array<{ user: string; message: string }>> = {
     { user: "assistant", message: "Got it, let's finalize the classification." },
   ],
 }
+
+let currentChatData = {};
+
 
 type DemoSidebarProps = {
   onSelectChat?: (id: number) => void
@@ -38,6 +43,20 @@ export default function DemoSidebar({ onSelectChat }: DemoSidebarProps) {
   const [linkValue, setLinkValue] = React.useState("")
   // New state for additional text input
   const [inputText, setInputText] = React.useState("")
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try { // objects
+        const response = await Axios.get('https://api.example.com/data'); // string
+        console.log('Data:', response.data);
+        currentChatData = response.data;
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+  
+    fetchData();
+  }, []);
 
   // Load the chat data when we pick a different chat
   React.useEffect(() => {
