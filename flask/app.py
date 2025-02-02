@@ -399,14 +399,16 @@ def get_feedback(feedback_id):
 # --- Simple RAG-Add Endpoint (sample form-data approach) ---
 @app.route("/rag-add", methods=['POST'])
 def RAGAdd():
-    data = request.form.get('data')
-    embeddings = request.form.get('embeddings')
-    source = request.form.get('source')
-    time_published = request.form.get('time_published')
+    data = request.args['data']
+    embeddings = request.args['embeddings']
+    source = request.args['source']
+    datatype = request.args['datatype']
+    time_published = request.args['time_published']
     return jsonify({
         "data": data,
         "embeddings": embeddings,
         "source": source,
+        "datatype": datatype,
         "time_published": time_published
     }), 200
 

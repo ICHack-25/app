@@ -1,7 +1,7 @@
 import requests
 import json
 
-BASE_URL = "http://127.0.0.1:5000"  # Adjust if your Flask server runs elsewhere
+BASE_URL = "https://ichack25-flask.containers.uwcs.co.uk/"  # Adjust if your Flask server runs elsewhere
 API_KEY = "testkey123"
 
 # Use a session to maintain consistent headers (including our API key)
