@@ -5,9 +5,9 @@ import json
 from typing import List, Dict
 import asyncio
 import requests
-# import mimetypes
-# import base64
-# import httpx
+import mimetypes
+import base64
+import httpx
 
 load_dotenv()
 BASE_URL = "http://127.0.0.1:5000"
@@ -103,17 +103,20 @@ class DBStore:
 
     def get_all(self):
         """Returns all stored documents as dictionaries."""
-        print("\n9) GET /rag-knowledge-bases")
-        resp = session.get(f"{BASE_URL}/rag-knowledge-bases")
-        print("Status:", resp.status_code)
+        print("Fetching all the relevant data..\n")
+        # print("\n9) GET /rag-knowledge-bases")
+        response = session.get(f"{BASE_URL}/rag-knowledge-bases")
+        # print("Status:", response.status_code)
         try:
-            print("Response:", resp.json())
+            print("Response:", response.json())
+            return [i.data for i in response.json()]
+            # return response.json().data
         except:
-            print("Non-JSON response:", resp.text)
+            print("Non-JSON response:", response.text)
             print(response)
 
     def addImage(self, data, datatype, embeddings=[0.1,0.2], source="unknown", time_published="unknown"):
-        self.add_entry(imageToText(data), embeddings, datatype, source, time_published)
+        self.add_entry(imageToText(datatype, data), embeddings, datatype, source, time_published)
 
     def addText(self, data, datatype="text/plain", embeddings=[0.1,0.2], source="unknown", time_published="unknown"):
         self.add_entry(data, datatype, embeddings, source, time_published)
@@ -175,6 +178,23 @@ def nameToPath(fileName):
     """returns absolute path of files put into the /flask/parsing/media/ folder"""
     filepath = os.path.join(os.path.dirname(__file__), fileName) #  + "/media/"
     return filepath
+
+
+################ retrieve filetype from a file ####################
+def getFileType(path):
+    """returns the file's MIME type, e.g. image/jpeg"""
+    return mimetypes.guess_type(path)[0]
+
+
+################ take a file, return filetype + encoded data ####################
+def loadLocalFile(path):
+    """Load a file from the given filepath and return its type and 64-bit encoded content."""
+    path = nameToPath(path)
+    if not os.path.exists(path): raise FileNotFoundError(f"The file {path} does not exist.")
+    with open(path, "rb") as f: 
+        fileData = f.read()
+    return getFileType(path), base64.standard_b64encode(fileData).decode("utf-8")
+
 
 
 ################ Fetch misinformation categories ####################
@@ -242,12 +262,11 @@ class RecursiveRetrievalModule:
         self.llm = llm
 
     async def iterative_retrieve(self, initial_query: str, max_steps: int = 3) -> List[Dict]:
-        context = ""
         query = initial_query
         retrieved_documents = []
 
         for _ in range(max_steps):
-            docs = await self.db.similarity_search(query, top_k=3)
+            docs = await self.db.similarity_search(query, top_k=100)
             retrieved_documents.extend(docs)
 
             # Generate sub-questions (mocked)
@@ -287,9 +306,14 @@ class RecursiveGenerationModule:
 
 
 ###################### Final Report Generation Pipeline ######################
-async def run_recursive_pipeline(initial_query):
+async def run_recursive_pipeline():
     """Main Pipeline"""
-    # initial_query = "<DataSeparator>".join([item.data for item in db.get_all()])
+    stored_data = db.get_all()
+    if stored_data != [] and stored_data is not None:
+        query = "<DataSeparator>".join([item.data for item in db.get_all()])
+    else:
+        query = ""
+    # print(query)
     # initial_query
     
     llm = LLM("analyse this request thoroughly")
@@ -299,15 +323,15 @@ async def run_recursive_pipeline(initial_query):
     generation_module = RecursiveGenerationModule()
     
     print("\n[STEP 1] Retrieving Documents...")
-    retrieved_docs = await retrieval_module.iterative_retrieve(initial_query)
+    retrieved_docs = await retrieval_module.iterative_retrieve(query)
     print("Retrieved Docs:", retrieved_docs)
 
     print("\n[STEP 2] Processing Documents...")
-    reasoning_output = await reasoning_module.process_documents(retrieved_docs, initial_query)
+    reasoning_output = await reasoning_module.process_documents(retrieved_docs, query)
     print("Reasoning Output:", reasoning_output)
 
     print("\n[STEP 3] Generating Final Answer...")
-    final_answer = await generation_module.generate_final_answer(reasoning_output, initial_query)
+    final_answer = await generation_module.generate_final_answer(reasoning_output, query)
     print("Final Answer:", final_answer)
 
 
@@ -321,9 +345,9 @@ if __name__ == "__main__":
     client = anthropicClientSetup()
     db = DBStore()
 
-    query = "Donald Trump is the new president of Ukraine!!"
+    query = "Donald Trump is the new president of Ukraine!! Moon is fake."
     links = ["https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg", "https://www.facebook.com/TheProjectTV/posts/rapper-50-cent-has-posted-a-photoshopped-album-cover-replacing-his-head-with-don/1045944933561837/"]
-    files = ["media/wasted.jpeg", "media/test1.png", "media/test.pdf"]
+    files = ["parsing/media/wasted.jpeg", "parsing/media/test1.png", "parsing/media/test.pdf"]
 
 
     # def add_entry(self, data, datatype, embeddings, source, time_published):
@@ -332,9 +356,17 @@ if __name__ == "__main__":
     # db.add_entry(data=query, datatype="text/plain", source="a", time_published="hello") # HACK technically /plain is not a valid MIME type, but text is
     # print(db.get_all())
     
-    db.addText("something")
-    
-    message = query
+    db.clear_all() # clear previous knowledge, remove if you're adding new prompt whatever
+    for line in query.splitlines():
+        db.addText(line)
+    for file in files[:1]:
+        dtype, data = loadLocalFile(nameToPath(file))
+        if dtype.split("/")[0] == "image":
+            db.addImage(data, dtype)
+    # db.get_all()
+    # print([i.data for i in db.get_all()])
+    # db.clear_all()
+    # message = query
 
     # filePath = 
 
@@ -350,7 +382,7 @@ if __name__ == "__main__":
 
 
     misinformationCategories = getMisinformationCategories()
-    asyncio.run(run_recursive_pipeline(message))
+    asyncio.run(run_recursive_pipeline())
     
     # Run the test
     # print(moderate_message(message, misinformationCategories)) 
@@ -360,27 +392,6 @@ if __name__ == "__main__":
 
 
 
-
-
-
-
-# def getFileType(path):
-#     """returns the file's MIME type, e.g. image/jpeg"""
-#     return mimetypes.guess_type(path)[0]
-
-# def loadLocalFile(path):
-#     """Load a file from the given filepath and return its type and 64-bit encoded content."""
-#     path = nameToPath(path)
-#     if not os.path.exists(path): raise FileNotFoundError(f"The file {path} does not exist.")
-#     with open(path, "rb") as f: 
-#         fileData = f.read()
-#     return getFileType(path), base64.standard_b64encode(fileData).decode("utf-8")
-
-
-# def nameToPath(fileName):
-#     """returns absolute path of files put into the /flask/parsing/media/ folder"""
-#     filepath = os.path.join(os.path.dirname(__file__), fileName) #  + "/media/"
-#     return filepath
 
 
 # print(imageToText(*loadLocalFile(nameToPath("parsing/media/wasted.jpeg"))))
