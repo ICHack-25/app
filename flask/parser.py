@@ -10,7 +10,7 @@ import base64
 import httpx
 
 load_dotenv()
-BASE_URL = "http://127.0.0.1:5000"
+BASE_URL = "http://127.0.0.1:5000" 
 API_KEY = "testkey123"
 
 # Use a session to keep headers consistent
@@ -266,7 +266,7 @@ def allConnectedReasoning():
 
 ###################### Recursive Retrieval Module ######################
 class RecursiveRetrievalModule:
-    def __init__(self):
+    def __init__(self, llm):
         self.llm = LLM(system="you are very good at asking potential validity and skeptical questions.")
 
     async def iterative_retrieve(self: str) -> List[Dict]:  #max_steps
