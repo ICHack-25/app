@@ -1,5 +1,10 @@
+import json
+import os
 from typing import List
 import time
+
+import requests
+from dotenv import load_dotenv
 from selenium import webdriver
 from selenium.webdriver import Keys
 from selenium.webdriver.chrome.options import Options
@@ -23,21 +28,19 @@ def find(term: str, number_links: str) -> list[str]:
     """
     based on search term, provide top n links from search engine
     """
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
+    load_dotenv()
+    API_KEY = os.getenv("SERP_API_KEY")
+    link = f"https://serpapi.com/search.json?engine=google&q={term}"
 
-    driver = webdriver.Chrome(options=options)
-    driver.get("https://www.google.com")
-    search_box = driver.find_element(By.NAME, "q")  # TODO
-    search_box.send_keys(term)  # TODO error here
-    search_box.send_keys(Keys.RETURN)
+    params = {
+        "engine": "google",
+        "q": term,
+        "api_key": API_KEY,
+        "num": number_links
+    }
 
-    time.sleep(2)
+    response = requests.get("https://serpapi.com/search", params=params)
+    data = response.json()
 
-    results = driver.find_elements(By.CSS_SELECTOR, "div.yuRUbf a")
-
-    links = [result.get_attribute("href") for result in results[:number_links]]
-
-    driver.quit()  # Close the browser
+    links = [result["link"] for result in data["organic_results"]]
     return links
