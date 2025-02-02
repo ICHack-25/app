@@ -643,9 +643,9 @@ class PromptCreate(BaseModel):
     files: List[str]
 
 @app.route("/submit-prompt", methods=['POST'])
-def submit_prompt(prompt):
+def submit_prompt():
     try:
-        prompt_data = PromptCreate(**prompt.json)
+        prompt_data = PromptCreate(**request.json)
         return jsonify({"data": parser.send_prompt(prompt_data.query, prompt_data.links, prompt_data.files)}), 200
     except Exception as e:
         return jsonify({"message": e}), 400

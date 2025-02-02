@@ -14,13 +14,11 @@ session.headers.update({
 })
 
 
-rag_data = {
-    "query":"Donald Trump is the new president of Ukraine!!"
+prompt_data = {
+    "query":"Donald Trump is the new president of Ukraine!!",
+    "links": ["https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg", "https://www.facebook.com/TheProjectTV/posts/rapper-50-cent-has-posted-a-photoshopped-album-cover-replacing-his-head-with-don/1045944933561837/"],
+    "files": ["parsing/media/wasted.jpeg", "parsing/media/test1.png", "parsing/media/test.pdf"]
 }
-resp = session.post(f"{BASE_URL}/rag-knowledge-bases", json=rag_data)
+resp = session.post(f"{BASE_URL}/submit-prompt", json=prompt_data)
 
 print_response(resp)
-
-rag_entry_id = None
-if resp.status_code == 201:
-    rag_entry_id = resp.json().get("_id")
