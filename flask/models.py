@@ -26,7 +26,7 @@ class RAGKnowledgeBase(BaseModel):
     embeddings: List[float] # list of floats
     datatype: str
     source: str
-    time_published: datetime
+    time_published: str
 
 class Uploads(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
