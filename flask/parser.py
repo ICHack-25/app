@@ -92,9 +92,9 @@ class DBStore:
     def add_entry(self, data, datatype, embeddings, source, time_published):
         """Adds a new document to the store."""
         new_entry = DataObject(data, datatype, embeddings, source, time_published)
-        print(new_entry.to_dict())
+        # print(new_entry.to_dict())
         response = session.post(f"{BASE_URL}/rag-add", json=new_entry.to_dict())  # Fixed URL
-        print(response)
+        # print(response)
 
     def clear_all(self):
         """Clears all stored documents."""
@@ -108,11 +108,11 @@ class DBStore:
         response = session.get(f"{BASE_URL}/rag-knowledge-bases")
         # print("Status:", response.status_code)
         try:
-            print("Response:", response.json())
-            return [i.data for i in response.json()]
+            print("Response:", response)
+            return [i[data] for i in response.json()]
             # return response.json().data
         except:
-            print("Non-JSON response:", response.text)
+            print("Non-JSON response:", response[data])
             print(response)
 
     def addImage(self, data, datatype, embeddings=[0.1,0.2], source="unknown", time_published="unknown"):
@@ -393,6 +393,10 @@ if __name__ == "__main__":
 
     misinformationCategories = getMisinformationCategories()
     asyncio.run(run_recursive_pipeline(initial_query))
+    
+    
+    print("========================================\n")
+    print(allConnectedReasoning())
     
     # Run the test
     # print(moderate_message(message, misinformationCategories)) 
