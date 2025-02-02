@@ -36,7 +36,7 @@ jobs:
       id: meta_flask
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/${{ github.repository }}/flask
+        images: ghcr.io/${{ github.repository }}
         tags: | # tag with commit hash and with 'latest'
           type=sha 
           type=raw,value=latest,enable={{is_default_branch}}
