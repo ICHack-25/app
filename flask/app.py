@@ -155,8 +155,6 @@ def upload_file():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-
-
 @app.route('/download/<filename>', methods=['GET'])
 def download_file(filename):
     grid_out = fs.find_one({"filename": filename})
@@ -273,6 +271,20 @@ def get_rag_knowledge_base(entry_id):
     entry["_id"] = str(entry["_id"])
     return jsonify(entry), 200
 
+@app.route("/rag-knowledge-bases", methods=['DELETE'])
+def delete_all_rag_knowledge_bases():
+    """
+    Deletes all entries from the RAG Knowledge Base collection.
+    """
+    try:
+        result = rag_knowledge_base_collection.delete_many({})
+        return jsonify({
+            "message": "All RAG Knowledge Base entries have been deleted.",
+            "deleted_count": result.deleted_count
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # --- TextAnalysis Endpoints ---
 @app.route("/text-analyses", methods=['POST'])
 def add_text_analysis():
@@ -289,7 +301,6 @@ def add_text_analysis():
     inserted = text_analysis_collection.insert_one(analysis_dict)
     analysis_dict["_id"] = str(inserted.inserted_id)
     return jsonify(analysis_dict), 201
-#
 
 @app.route("/text-analyses", methods=['GET'])
 def get_text_analyses():
@@ -398,6 +409,233 @@ def RAGAdd():
         "source": source,
         "time_published": time_published
     }), 200
+
+# ─────────────────────────────────────────────────────────────────────
+# NEW ENDPOINTS FOR ADDITIONAL FLEXIBILITY (CRUD Operations)
+# ─────────────────────────────────────────────────────────────────────
+
+# === User Endpoints ===
+
+@app.route("/users", methods=["GET"])
+def get_all_users():
+    users = list(users_collection.find({}))
+    for user in users:
+        user["_id"] = str(user["_id"])
+    return jsonify(users), 200
+
+@app.route("/users/<user_id>", methods=["GET"])
+def get_user(user_id):
+    try:
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    user["_id"] = str(user["_id"])
+    return jsonify(user), 200
+
+@app.route("/users/<user_id>", methods=["PUT"])
+def update_user(user_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+    try:
+        update_result = users_collection.update_one({"_id": ObjectId(user_id)}, {"$set": data})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if update_result.matched_count == 0:
+        return jsonify({"error": "User not found"}), 404
+    updated_user = users_collection.find_one({"_id": ObjectId(user_id)})
+    updated_user["_id"] = str(updated_user["_id"])
+    return jsonify(updated_user), 200
+
+@app.route("/users/<user_id>", methods=["DELETE"])
+def delete_user(user_id):
+    try:
+        result = users_collection.delete_one({"_id": ObjectId(user_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if result.deleted_count == 0:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify({"message": "User deleted successfully"}), 200
+
+# === ClassificationResult Update/Delete ===
+
+@app.route("/classification-results/<result_id>", methods=["PUT"])
+def update_classification_result(result_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+    try:
+        update_result = classification_results_collection.update_one({"_id": ObjectId(result_id)}, {"$set": data})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if update_result.matched_count == 0:
+        return jsonify({"error": "Classification result not found"}), 404
+    updated_doc = classification_results_collection.find_one({"_id": ObjectId(result_id)})
+    updated_doc["_id"] = str(updated_doc["_id"])
+    return jsonify(updated_doc), 200
+
+@app.route("/classification-results/<result_id>", methods=["DELETE"])
+def delete_classification_result(result_id):
+    try:
+        result = classification_results_collection.delete_one({"_id": ObjectId(result_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if result.deleted_count == 0:
+        return jsonify({"error": "Classification result not found"}), 404
+    return jsonify({"message": "Classification result deleted successfully"}), 200
+
+# === RAGKnowledgeBase Update/Delete ===
+
+@app.route("/rag-knowledge-bases/<entry_id>", methods=["PUT"])
+def update_rag_knowledge_base(entry_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+    try:
+        update_result = rag_knowledge_base_collection.update_one({"_id": ObjectId(entry_id)}, {"$set": data})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if update_result.matched_count == 0:
+        return jsonify({"error": "RAG Knowledge Base entry not found"}), 404
+    updated_entry = rag_knowledge_base_collection.find_one({"_id": ObjectId(entry_id)})
+    updated_entry["_id"] = str(updated_entry["_id"])
+    return jsonify(updated_entry), 200
+
+@app.route("/rag-knowledge-bases/<entry_id>", methods=["DELETE"])
+def delete_rag_knowledge_base(entry_id):
+    try:
+        result = rag_knowledge_base_collection.delete_one({"_id": ObjectId(entry_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if result.deleted_count == 0:
+        return jsonify({"error": "RAG Knowledge Base entry not found"}), 404
+    return jsonify({"message": "RAG Knowledge Base entry deleted successfully"}), 200
+
+# === TextAnalysis Update/Delete ===
+
+@app.route("/text-analyses/<analysis_id>", methods=["PUT"])
+def update_text_analysis(analysis_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+    try:
+        update_result = text_analysis_collection.update_one({"_id": ObjectId(analysis_id)}, {"$set": data})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if update_result.matched_count == 0:
+        return jsonify({"error": "Text analysis not found"}), 404
+    updated_doc = text_analysis_collection.find_one({"_id": ObjectId(analysis_id)})
+    updated_doc["_id"] = str(updated_doc["_id"])
+    return jsonify(updated_doc), 200
+
+@app.route("/text-analyses/<analysis_id>", methods=["DELETE"])
+def delete_text_analysis(analysis_id):
+    try:
+        result = text_analysis_collection.delete_one({"_id": ObjectId(analysis_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if result.deleted_count == 0:
+        return jsonify({"error": "Text analysis not found"}), 404
+    return jsonify({"message": "Text analysis deleted successfully"}), 200
+
+# === URLAnalysis Update/Delete ===
+
+@app.route("/url-analyses/<analysis_id>", methods=["PUT"])
+def update_url_analysis(analysis_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+    try:
+        update_result = url_analysis_collection.update_one({"_id": ObjectId(analysis_id)}, {"$set": data})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if update_result.matched_count == 0:
+        return jsonify({"error": "URL analysis not found"}), 404
+    updated_doc = url_analysis_collection.find_one({"_id": ObjectId(analysis_id)})
+    updated_doc["_id"] = str(updated_doc["_id"])
+    return jsonify(updated_doc), 200
+
+@app.route("/url-analyses/<analysis_id>", methods=["DELETE"])
+def delete_url_analysis(analysis_id):
+    try:
+        result = url_analysis_collection.delete_one({"_id": ObjectId(analysis_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if result.deleted_count == 0:
+        return jsonify({"error": "URL analysis not found"}), 404
+    return jsonify({"message": "URL analysis deleted successfully"}), 200
+
+# === Feedback Update/Delete ===
+
+@app.route("/feedback/<feedback_id>", methods=["PUT"])
+def update_feedback(feedback_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+    try:
+        update_result = feedback_collection.update_one({"_id": ObjectId(feedback_id)}, {"$set": data})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if update_result.matched_count == 0:
+        return jsonify({"error": "Feedback not found"}), 404
+    updated_doc = feedback_collection.find_one({"_id": ObjectId(feedback_id)})
+    updated_doc["_id"] = str(updated_doc["_id"])
+    return jsonify(updated_doc), 200
+
+@app.route("/feedback/<feedback_id>", methods=["DELETE"])
+def delete_feedback(feedback_id):
+    try:
+        result = feedback_collection.delete_one({"_id": ObjectId(feedback_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if result.deleted_count == 0:
+        return jsonify({"error": "Feedback not found"}), 404
+    return jsonify({"message": "Feedback deleted successfully"}), 200
+
+# === Uploads Endpoints (Additional) ===
+
+@app.route("/upload/<upload_id>", methods=["GET"])
+def get_upload(upload_id):
+    try:
+        upload_doc = uploads_collection.find_one({"_id": ObjectId(upload_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if not upload_doc:
+        return jsonify({"error": "Upload not found"}), 404
+    upload_doc["_id"] = str(upload_doc["_id"])
+    return jsonify(upload_doc), 200
+
+@app.route("/upload/<upload_id>", methods=["PUT"])
+def update_upload(upload_id):
+    # You can update via JSON or form-data. Here we try JSON first.
+    data = request.get_json() or request.form.to_dict()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+    try:
+        result = uploads_collection.update_one({"_id": ObjectId(upload_id)}, {"$set": data})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if result.matched_count == 0:
+        return jsonify({"error": "Upload not found"}), 404
+    updated_doc = uploads_collection.find_one({"_id": ObjectId(upload_id)})
+    updated_doc["_id"] = str(updated_doc["_id"])
+    return jsonify(updated_doc), 200
+
+@app.route("/upload/<upload_id>", methods=["DELETE"])
+def delete_upload(upload_id):
+    try:
+        result = uploads_collection.delete_one({"_id": ObjectId(upload_id)})
+    except Exception:
+        return jsonify({"error": "Invalid ID format"}), 400
+    if result.deleted_count == 0:
+        return jsonify({"error": "Upload not found"}), 404
+    return jsonify({"message": "Upload deleted successfully"}), 200
+
+# ─────────────────────────────────────────────────────────────────────
+# END OF NEW FLEXIBLE ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def hello_world():
