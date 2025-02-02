@@ -112,30 +112,31 @@ def upload_file():
         image_id = str(fs.put(file, filename=file.filename))
 
     try:
-        # Validate the input using the Pydantic model
+        # Create the Uploads model instance.
         upload_model = Uploads(
             url=url,
             image_id=image_id,
             text=text,
             user_id=user_id
         )
-        # Save validated data to the database
-        upload_id = uploads_collection.insert_one(upload_model.dict(by_alias=True)).inserted_id
-
+        
+        # Convert the model to a dict using aliases.
+        upload_dict = upload_model.dict(by_alias=True, exclude_unset=True)
+        
+        # Insert the document into the uploads collection.
+        inserted_id = uploads_collection.insert_one(upload_dict).inserted_id
+        
+        # Add the generated id into our dict (as a string).
+        upload_dict["_id"] = str(inserted_id)
+        
         return jsonify({
             "message": "Upload saved successfully",
-            "upload_id": str(upload_id),
-            "data": upload_model.dict(by_alias=True)
+            "upload_id": str(inserted_id),
+            "data": upload_dict
         }), 201
-    except ValidationError as e:
-        # Catch Pydantic validation errors and return as JSON
-        return jsonify({"error": e.errors()}), 400
-    except ValueError as e:
-        # Catch value errors (e.g., from field validators)
-        return jsonify({"error": str(e)}), 400
+
     except Exception as e:
-        # Catch all other exceptions
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}), 400
 
 
 @app.route('/download/<filename>', methods=['GET'])
